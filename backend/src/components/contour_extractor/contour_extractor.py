@@ -1,256 +1,230 @@
 #!/usr/bin/env python3
 """
-Contour Extractor Component - Extracts contours from drone and satellite images 
-for subsequent alignment and matching by the Rotation Normalization Agent.
+Contour Extractor Module
+
+This module provides functionality to extract contours from images.
+It processes images to detect edges and contours of objects and features,
+which can be used for pattern matching and location estimation.
+
+Classes:
+    ContourExtractor: Main class for extracting and visualizing contours from images
+
+Functions:
+    extract_contours: Extract contours from an image with configurable threshold
+    _identify_major_features: Identify major features from extracted contours
+
+Dependencies:
+    - OpenCV
+    - NumPy
 """
 
 import cv2
 import numpy as np
+import base64
+from pathlib import Path
+import logging
 import json
-import matplotlib.pyplot as plt
 import os
-from typing import Dict, List, Tuple, Any, Optional
+import uuid
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('contour_extractor.log')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 class ContourExtractor:
     """
-    Extracts contours from drone and satellite images for use in image matching.
+    Class for extracting contours from images and visualizing them.
+    
+    This class provides methods to process images, extract contours
+    using adaptive thresholding, and generate visualizations. It's
+    particularly useful for computer vision-based location estimation.
+    
+    Attributes:
+        temp_dir (Path): Directory for storing temporary image files
     """
     
-    def __init__(self, 
-                 canny_threshold1: int = 100, 
-                 canny_threshold2: int = 200,
-                 min_contour_length: int = 150,
-                 gaussian_blur_kernel: Tuple[int, int] = (5, 5)):
+    def __init__(self):
         """
-        Initialize the ContourExtractor with parameters for edge detection and filtering.
+        Initialize the ContourExtractor.
+        
+        Sets up a temporary directory for storing intermediate files
+        during processing. The directory is created in /tmp if possible,
+        or falls back to a local directory.
+        """
+        logger.info("Contour Extractor initialized")
+        try:
+            # Use a temp directory that's definitely writable for the non-root user
+            self.temp_dir = Path("/tmp/contour_images")
+            os.makedirs(self.temp_dir, exist_ok=True)
+            logger.info(f"Created temp directory at {self.temp_dir}")
+        except Exception as e:
+            logger.error(f"Error creating temp directory: {str(e)}")
+            # Fallback to current directory if /tmp is not writable
+            self.temp_dir = Path("./contour_images")
+            os.makedirs(self.temp_dir, exist_ok=True)
+            logger.info(f"Created fallback temp directory at {self.temp_dir}")
+    
+    def extract_contours(self, image_path, threshold=50):
+        """
+        Extract contours from an image.
+        
+        Processing steps:
+        1. Convert image to grayscale
+        2. Apply Gaussian blur to reduce noise
+        3. Apply Canny edge detection with dynamic thresholds
+        4. Find and filter contours based on area
+        5. Generate visualization image with contours overlaid
         
         Args:
-            canny_threshold1: Lower threshold for Canny edge detector
-            canny_threshold2: Upper threshold for Canny edge detector
-            min_contour_length: Minimum length (in pixels) for a contour to be considered valid
-            gaussian_blur_kernel: Kernel size for Gaussian blur preprocessing
-        """
-        self.canny_threshold1 = canny_threshold1
-        self.canny_threshold2 = canny_threshold2
-        self.min_contour_length = min_contour_length
-        self.gaussian_blur_kernel = gaussian_blur_kernel
-        
-    def preprocess_image(self, image_path: str) -> np.ndarray:
-        """
-        Preprocess an image for contour extraction.
-        
-        Args:
-            image_path: Path to the image file
+            image_path (str): Path to the input image
+            threshold (int): Contour detection threshold (0-100). 
+                             Lower values extract fewer but stronger contours.
             
         Returns:
-            Preprocessed image as numpy array
+            dict: A dictionary containing:
+                - original_image: Base64-encoded original image
+                - contour_visualization: Base64-encoded visualization
+                - contours: List of extracted contours (points)
+                - contour_count: Number of contours found
+                - major_features: List of identified major features
+                - threshold_used: The threshold value used
+                
+        Raises:
+            Exception: If image processing fails
         """
-        # Load image
-        image = cv2.imread(image_path)
-        if image is None:
-            raise FileNotFoundError(f"Could not load image from {image_path}")
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
-        # Apply Gaussian blur to reduce noise
-        blurred = cv2.GaussianBlur(gray, self.gaussian_blur_kernel, 0)
-        
-        # Apply Canny edge detection
-        edges = cv2.Canny(blurred, 
-                          self.canny_threshold1, 
-                          self.canny_threshold2)
-        
-        return edges
-    
-    def extract_contours(self, preprocessed_image: np.ndarray) -> List[np.ndarray]:
-        """
-        Extract contours from a preprocessed image.
-        
-        Args:
-            preprocessed_image: Image that has been processed with edge detection
+        try:
+            logger.info(f"Extracting contours from: {image_path} with threshold: {threshold}")
             
-        Returns:
-            List of contours as numpy arrays
-        """
-        # Find contours in the edge image
-        contours, _ = cv2.findContours(
-            preprocessed_image, 
-            cv2.RETR_EXTERNAL, 
-            cv2.CHAIN_APPROX_SIMPLE
-        )
-        
-        # Filter contours by length
-        filtered_contours = []
-        for contour in contours:
-            if len(contour) >= self.min_contour_length:
-                filtered_contours.append(contour)
-        
-        return filtered_contours
-    
-    def visualize_contours(self, 
-                          image_path: str, 
-                          contours: List[np.ndarray], 
-                          output_path: Optional[str] = None) -> None:
-        """
-        Visualize contours on the original image.
-        
-        Args:
-            image_path: Path to the original image
-            contours: List of contours to visualize
-            output_path: Path to save the visualization (if None, displays instead)
-        """
-        # Load the original image
-        image = cv2.imread(image_path)
-        if image is None:
-            raise FileNotFoundError(f"Could not load image from {image_path}")
-        
-        # Create a copy for visualization
-        vis_image = image.copy()
-        
-        # Draw contours on the image
-        cv2.drawContours(vis_image, contours, -1, (0, 255, 0), 2)
-        
-        # Convert from BGR to RGB for matplotlib
-        vis_image_rgb = cv2.cvtColor(vis_image, cv2.COLOR_BGR2RGB)
-        
-        # Display or save
-        plt.figure(figsize=(10, 8))
-        plt.imshow(vis_image_rgb)
-        plt.title(f"Contours from {os.path.basename(image_path)}")
-        plt.axis('off')
-        
-        if output_path:
-            plt.savefig(output_path, bbox_inches='tight')
-            plt.close()
-        else:
-            plt.show()
-    
-    def format_contours_for_output(self, 
-                                  contours: List[np.ndarray]) -> List[Dict[str, Any]]:
-        """
-        Format contours for JSON output.
-        
-        Args:
-            contours: List of contours as numpy arrays
+            # Read the image
+            img = cv2.imread(image_path)
+            if img is None:
+                logger.error(f"Failed to read image: {image_path}")
+                return None
             
-        Returns:
-            List of contours in the expected JSON format
-        """
-        formatted_contours = []
-        
-        for contour in contours:
-            # Convert to a list of [x, y] points
-            points = contour.reshape(-1, 2).tolist()
+            # Convert to grayscale
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
-            # Calculate contour length
-            length = cv2.arcLength(contour, closed=True)
+            # Apply Gaussian blur to reduce noise
+            blurred = cv2.GaussianBlur(gray, (5, 5), 0)
             
-            formatted_contours.append({
-                "points": points,
-                "length": float(length)
-            })
-        
-        return formatted_contours
-    
-    def process_drone_image(self, image_path: str) -> List[Dict[str, Any]]:
-        """
-        Process a drone image to extract contours.
-        
-        Args:
-            image_path: Path to the drone image
+            # Map the threshold from 0-100 to appropriate Canny thresholds
+            # Lower UI threshold = fewer contours (higher canny thresholds)
+            # Higher UI threshold = more contours (lower canny thresholds)
+            canny_low = int(150 - threshold)  # Invert the relationship
+            canny_high = int(canny_low * 2)   # Typically high is twice the low threshold
             
-        Returns:
-            Formatted contours from the drone image
-        """
-        # Preprocess the image
-        preprocessed = self.preprocess_image(image_path)
-        
-        # Extract contours
-        contours = self.extract_contours(preprocessed)
-        
-        # Format for output
-        return self.format_contours_for_output(contours)
-    
-    def process_satellite_image(self, 
-                               image_info: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Process a satellite image to extract contours.
-        
-        Args:
-            image_info: Dictionary with satellite image path and metadata
+            # Apply Canny edge detection with dynamic thresholds
+            edges = cv2.Canny(blurred, canny_low, canny_high)
             
-        Returns:
-            Dictionary with area ID, bounds, and formatted contours
-        """
-        # Extract info from the input
-        area_id = image_info["area_id"]
-        image_path = image_info["image_path"]
-        bounds = image_info["bounds"]
-        
-        # Preprocess the image
-        preprocessed = self.preprocess_image(image_path)
-        
-        # Extract contours
-        contours = self.extract_contours(preprocessed)
-        
-        # Format for output
-        return {
-            "area_id": area_id,
-            "contours": self.format_contours_for_output(contours),
-            "bounds": bounds
-        }
-    
-    def process_input(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Process the input JSON data to extract contours from all images.
-        
-        Args:
-            input_data: Input data in the expected JSON format
+            # Find contours
+            contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
-        Returns:
-            Output data with extracted contours
-        """
-        # Extract drone image contours
-        drone_contours = self.process_drone_image(input_data["drone_image_path"])
-        
-        # Extract satellite image contours
-        satellite_contours = []
-        for sat_image in input_data["satellite_images"]:
-            satellite_contours.append(self.process_satellite_image(sat_image))
-        
-        # Format the complete output
-        output = {
-            "image_id": input_data["image_id"],
-            "drone_contours": drone_contours,
-            "satellite_contours": satellite_contours
-        }
-        
-        return output
-
-# Example usage
-if __name__ == "__main__":
-    # This is just an example - you'll need to replace with actual paths and data
-    extractor = ContourExtractor()
-    
-    # Example input data
-    input_data = {
-        "image_id": "test_image_001",
-        "drone_image_path": "path/to/drone/image.jpg",
-        "satellite_images": [
-            {
-                "area_id": "area_001",
-                "image_path": "path/to/satellite/image.jpg",
-                "bounds": [0, 0, 1000, 1000]
+            # Scale the minimum area based on threshold
+            # Lower threshold = higher minimum area (more filtering)
+            min_area = int(100 + (100 - threshold) * 2)
+            filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_area]
+            
+            # Create visualization image
+            viz_img = img.copy()
+            cv2.drawContours(viz_img, filtered_contours, -1, (0, 255, 0), 2)
+            
+            # Save visualization image
+            viz_path = self.temp_dir / f"{uuid.uuid4()}_contour_viz.jpg"
+            cv2.imwrite(str(viz_path), viz_img)
+            
+            # Encode original and visualization images to base64
+            with open(image_path, "rb") as img_file:
+                orig_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+            
+            with open(viz_path, "rb") as viz_file:
+                viz_base64 = base64.b64encode(viz_file.read()).decode('utf-8')
+            
+            # Convert contours to serializable format
+            serializable_contours = []
+            for cnt in filtered_contours:
+                # Convert each contour to a list of points
+                points = cnt.reshape(-1, 2).tolist()
+                serializable_contours.append(points)
+            
+            # Create result
+            result = {
+                "original_image": orig_base64,
+                "contour_visualization": viz_base64,
+                "contours": serializable_contours,
+                "contour_count": len(filtered_contours),
+                "major_features": self._identify_major_features(filtered_contours, img.shape),
+                "threshold_used": threshold
             }
-        ]
-    }
+            
+            # Clean up visualization image
+            if viz_path.exists():
+                viz_path.unlink()
+            
+            return result
+        
+        except Exception as e:
+            logger.error(f"Error extracting contours: {str(e)}")
+            return None
     
-    # Process the input
-    try:
-        output = extractor.process_input(input_data)
-        print(f"Extracted {len(output['drone_contours'])} contours from drone image")
-        for sat_contours in output["satellite_contours"]:
-            print(f"Extracted {len(sat_contours['contours'])} contours from satellite image {sat_contours['area_id']}")
-    except Exception as e:
-        print(f"Error processing images: {e}") 
+    def _identify_major_features(self, contours, img_shape):
+        """
+        Identify major features from contours.
+        
+        This method analyzes contours to identify significant features
+        based on properties such as size, shape, and distribution.
+        It categorizes contours into structural elements, linear features
+        (like roads or rivers), and compact features (like buildings).
+        
+        Args:
+            contours (list): List of contours extracted from the image
+            img_shape (tuple): Shape of the original image (height, width, channels)
+            
+        Returns:
+            list: List of identified major features as descriptive strings
+        """
+        features = []
+        
+        # Get image dimensions
+        height, width = img_shape[:2]
+        img_area = height * width
+        
+        # Identify large contours
+        large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > img_area * 0.05]
+        if large_contours:
+            features.append(f"Found {len(large_contours)} major structural elements")
+        
+        # Check for linear features (roads, rivers)
+        linear_contours = []
+        for cnt in contours:
+            perimeter = cv2.arcLength(cnt, True)
+            area = cv2.contourArea(cnt)
+            if perimeter > 0 and area > 0:
+                circularity = 4 * np.pi * area / (perimeter * perimeter)
+                if circularity < 0.2:  # Linear features have low circularity
+                    linear_contours.append(cnt)
+        
+        if linear_contours:
+            features.append(f"Found {len(linear_contours)} potential linear features (roads, rivers, etc.)")
+        
+        # Check for compact shapes (buildings, cars)
+        compact_contours = []
+        for cnt in contours:
+            if cv2.contourArea(cnt) > 100:  # Minimum area threshold
+                perimeter = cv2.arcLength(cnt, True)
+                area = cv2.contourArea(cnt)
+                if perimeter > 0:
+                    circularity = 4 * np.pi * area / (perimeter * perimeter)
+                    if circularity > 0.6:  # Compact features have high circularity
+                        compact_contours.append(cnt)
+        
+        if compact_contours:
+            features.append(f"Found {len(compact_contours)} potential compact features (buildings, vehicles, etc.)")
+        
+        return features 

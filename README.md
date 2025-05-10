@@ -60,13 +60,21 @@ The frontend will be available at http://localhost:5173
 
 ## API Endpoints
 
-### `GET /`
+### Basic Endpoints
+
+#### `GET /`
 
 Health check endpoint that returns status information.
 
-### `POST /analyze`
+#### `POST /analyze` (deprecated)
 
-Analyzes an uploaded image and returns location estimation.
+Legacy endpoint. Use `/llm-analysis/analyze` instead.
+
+### LLM Analysis Endpoints
+
+#### `POST /llm-analysis/analyze`
+
+Analyzes an uploaded image and returns location estimation using LLM.
 
 **Parameters:**
 - `file`: The image file to analyze (form data)
@@ -82,12 +90,39 @@ Analyzes an uploaded image and returns location estimation.
 }
 ```
 
+### Contour Analysis Endpoints
+
+#### `POST /contour/extract`
+
+Extracts contours from an uploaded image.
+
+**Parameters:**
+- `file`: The image file to analyze (form data)
+- `threshold`: Contour detection threshold 0-100 (form data)
+
+#### `POST /contour/match`
+
+Matches contours between a drone image and satellite images.
+
+**Parameters:**
+- `drone_image`: Drone image file (form data)
+- `satellite_images`: Up to 4 satellite image files (form data)
+- `threshold`: Contour detection threshold 0-100 (form data)
+
+For detailed information about contour analysis, see [CONTOUR_ANALYSIS_USAGE.md](CONTOUR_ANALYSIS_USAGE.md).
+
 ## Frontend Features
 
 - Image upload and preview
 - Option to toggle between UK-specific and global analysis modes
 - Display of analysis results including estimated location, confidence, and visual features
+- Contour extraction and matching for location estimation
 - Responsive design for desktop and mobile devices
+
+## Documentation
+
+- [LLM Analyzer Usage](LLM_ANALYZER_USAGE.md) - Guide for using the LLM analysis features
+- [Contour Analysis Usage](CONTOUR_ANALYSIS_USAGE.md) - Guide for using the contour analysis features
 
 # 25-LDTH-Relocalisation
 Repo for Arondite's Relocalisation with Multi-scale Feature Matching challenge.
