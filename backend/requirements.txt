@@ -6,4 +6,5 @@ owslib>=0.31.0
 pillow>=10.4.0
 pyproj>=3.5.0
 shapely>=2.0.7
-tabulate 
+tabulate
+python-dotenv>=1.0.0 

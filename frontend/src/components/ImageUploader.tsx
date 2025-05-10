@@ -21,6 +21,8 @@ import { analyzeImage } from '../api/api';
 interface AnalysisResult {
   'estimated-location'?: string;
   'confidence'?: number;
+  'description'?: string;
+  'features'?: string[];
   'visual-features'?: string[];
   'matching-regions'?: string[];
   'contours'?: any; // We would need to define a proper type for this
@@ -194,7 +196,25 @@ const ImageUploader = () => {
           
           <VStack align="start" spacing={2}>
             <Text><strong>Estimated Location:</strong> {result['estimated-location'] || 'Unknown'}</Text>
-            <Text><strong>Confidence:</strong> {result['confidence'] ? `${result['confidence'] * 100}%` : 'Unknown'}</Text>
+            <Text><strong>Confidence:</strong> {result.confidence !== undefined ? `${result.confidence}%` : 'Unknown'}</Text>
+            
+            {result['description'] && (
+              <Box>
+                <Text><strong>Description:</strong></Text>
+                <Text pl={4}>{result['description']}</Text>
+              </Box>
+            )}
+            
+            {result['features'] && result['features'].length > 0 && (
+              <Box>
+                <Text><strong>Features:</strong></Text>
+                <Box pl={4}>
+                  {result['features'].map((feature, index) => (
+                    <Text key={index}>• {feature}</Text>
+                  ))}
+                </Box>
+              </Box>
+            )}
             
             {result['visual-features'] && (
               <Box>
