@@ -3,6 +3,7 @@
 OSM Search Area Processor
 
 This module loads search area coordinates and converts them into the Overpass QL polygon format.
+It also substitutes the polygon string into Overpass QL queries.
 """
 
 import os
@@ -16,8 +17,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Hardcoded path to the search area JSON file
+# Hardcoded paths
 SEARCH_AREA_PATH = "/Users/harveypitt/Documents/Alive Industries/Repos/sandhack/data/example/images/rickmansworth_example_search_area.json"
+QUERY_TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "osm_search.json")
+OUTPUT_QUERY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "final_query.txt")
 
 def load_coordinates(file_path=SEARCH_AREA_PATH):
     """
@@ -119,6 +122,54 @@ def create_poly_string(coordinates):
     
     return poly_string
 
+def load_query_template(file_path=QUERY_TEMPLATE_PATH):
+    """
+    Load Overpass QL query template from a JSON file.
+    
+    Args:
+        file_path: Path to the JSON file containing the query template
+        
+    Returns:
+        Query string or None if failed
+    """
+    try:
+        if not os.path.exists(file_path):
+            logger.error(f"Query template file not found: {file_path}")
+            return None
+        
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        
+        if 'query' in data and isinstance(data['query'], str):
+            logger.info(f"Loaded query template from {file_path}")
+            return data['query']
+        else:
+            logger.error(f"No 'query' field found in {file_path}")
+            return None
+            
+    except Exception as e:
+        logger.error(f"Error loading query template: {e}")
+        return None
+
+def substitute_poly_string(query_template, poly_string):
+    """
+    Replace {poly_string} placeholder in query template with actual polygon string.
+    
+    Args:
+        query_template: Overpass QL query with {poly_string} placeholder
+        poly_string: Polygon string to substitute
+        
+    Returns:
+        Final query with polygon string substituted
+    """
+    if not query_template or not poly_string:
+        return ""
+    
+    final_query = query_template.replace("{poly_string}", poly_string)
+    logger.info("Substituted polygon string into query template")
+    
+    return final_query
+
 def process_search_area(file_path=SEARCH_AREA_PATH):
     """
     Process the search area file and generate a poly string.
@@ -137,23 +188,61 @@ def process_search_area(file_path=SEARCH_AREA_PATH):
 
 def main():
     """Main function to run when script is executed directly."""
+    # Step 1: Generate the polygon string
     poly_string = process_search_area()
-    if poly_string:
-        print(f"Poly string: {poly_string}")
-        
-        # Save to a file for use in other scripts
-        output_dir = os.path.dirname(os.path.abspath(__file__))
-        output_path = os.path.join(output_dir, "poly_string.txt")
-        
-        with open(output_path, 'w') as f:
-            f.write(poly_string)
-        logger.info(f"Saved poly string to {output_path}")
-        
-        # Return the poly string for use in other scripts
-        return poly_string
-    else:
-        logger.error("Failed to create poly string.")
-        return ""
+    if not poly_string:
+        logger.error("Failed to create polygon string.")
+        return False
+    
+    print(f"Polygon string created: {poly_string[:60]}... ({len(poly_string)} chars)")
+    
+    # Save the poly string to a file
+    poly_string_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "poly_string.txt")
+    with open(poly_string_path, 'w') as f:
+        f.write(poly_string)
+    logger.info(f"Saved polygon string to {poly_string_path}")
+    
+    # Step 2: Load the query template
+    query_template = load_query_template()
+    if not query_template:
+        logger.error("Failed to load query template.")
+        return False
+    
+    # Step 3: Substitute the polygon string into the query
+    final_query = substitute_poly_string(query_template, poly_string)
+    if not final_query:
+        logger.error("Failed to substitute polygon string into query.")
+        return False
+    
+    print(f"Final query created: {final_query[:100]}... ({len(final_query)} chars)")
+    
+    # Step 4: Save the final query
+    with open(OUTPUT_QUERY_PATH, 'w') as f:
+        f.write(final_query)
+    print(f"Saved final query to {OUTPUT_QUERY_PATH}")
+    
+    # Step 5 (Optional): Try to execute the query using Overpy
+    try:
+        print("Attempting to execute the query using Overpy...")
+        api = overpy.Overpass()
+        result = api.query(final_query)
+        print(f"Query executed successfully! Found {len(result.nodes)} nodes, {len(result.ways)} ways, and {len(result.relations)} relations.")
+        return True
+    except Exception as e:
+        logger.warning(f"Could not execute query: {e}")
+        print("The query was generated but could not be executed automatically.")
+        print("You can copy the query from the output file and execute it manually at https://overpass-turbo.eu/")
+        return False
 
 if __name__ == "__main__":
-    main()
+    # Configure logging for main execution
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    success = main()
+    if success:
+        print("Process completed successfully!")
+    else:
+        print("Process completed with errors. Check the logs for details.")

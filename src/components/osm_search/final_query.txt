@@ -1,0 +1,32 @@
+[out:json][timeout:60];
+
+/* Polygon of the area of interest (replace with actual coordinates) */
+{{geocodeArea:51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927}}->.searchArea;
+
+/* 1) Residential & minor roads flanking the houses */
+way["highway"~"^(residential|unclassified)$"](area.searchArea)->.roads;
+
+/* 2) Footways/tracks crossing the green park */
+way["highway"~"^(footway|path)$"](area.searchArea)->.footways;
+
+/* 3) Park / recreational green space */
+way["leisure"="park"](area.searchArea)->.parks;
+
+/* 4) Residential buildings along the streets */
+way["building"~"^(house|residential)$"](area.searchArea)->.buildings;
+
+/* 5) Natural tree rows or wooded strip buffering the road & park */
+way["natural"~"^(wood|tree_row)$"](area.searchArea)->.trees;
+
+/* Return full geometry for all collected feature sets */
+(.roads;
+ .footways;
+ .parks;
+ .buildings;
+ .trees;
+);
+out body geom;
+
+/* 6) intersection – nodes shared by roads & footways (likely path-road junctions); limit to 10 */
+node(w.roads)(w.footways)->.intersections;
+.intersections out ids geom 10;

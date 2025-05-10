@@ -260,7 +260,13 @@ class LLMContextualAnalyzer:
                 "messages": [
                     {
                         "role": "system", 
-                        "content": "You are an expert in aerial image analysis and Overpass QL generation."
+                        "content": "You are an expert in OSINT Analyst with expertise in aerial image analysis and Overpass QL generation."
+                                   "You are given a drone image and a prompt to generate an Overpass QL query to find OpenStreetMap features visible in the image."
+                                   "You must generate a valid Overpass QL query that can be used to find the features in the image."
+                                   "You focus on the unique features visible in the image that uniquely identify the location."
+                                   "The query should return the nodes that help to identfiy the location."
+                                   "At the end of your Overpass QL, include a numbered “intersection” step that returns only the nodes belonging to the sets so you identify a few key locations only."
+                                   "Do not return more than 10 nodes."
                     },
                     {
                         "role": "user",
