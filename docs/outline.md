@@ -254,16 +254,10 @@ System: images to identify the best candidate area.
   - Scale mismatches reducing match accuracy.
   - Noisy contours due to low image contrast.
   - High computational cost for multiple areas.
-- **Testing Criteria**:
-  - Match score <0.1 for correct matches.
-  - >90% accuracy on urban test images.
-  - Processing time <5 seconds per area.
 - **Agent Journey**:
   1. Receive drone image and satellite images with bounds from Satellite Imagery Retrieval Agent.
   2. Extract contours from both images.
-  3. Match contours across scales.
-  4. Select best match based on lowest score.
-  5. Output best contour and area to Rotation Normalization Agent.
+  3. Output all contours to the  Rotation Normalization Agent.
 - **Expected Input JSON**:
   ```json
   {
