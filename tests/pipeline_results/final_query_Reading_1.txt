@@ -1,0 +1,20 @@
+[out:json][timeout:60];
+
+/* 1) Main east-west roadway (residential / tertiary) */
+way["highway"~"^(primary|secondary|tertiary|residential)$"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.set1;
+
+/* 2) Waterway (river / canal) at the southern edge */
+way["waterway"~"^(river|canal)$"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.set2;
+
+/* 3) Large industrial warehouse building */
+way["building"="industrial"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.set3;
+
+/* 4) Rows of terraced housing */
+way["building"="terrace"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.set4;
+
+/* 5) Service roads within the industrial estate */
+way["highway"="service"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.set5;
+
+/* 1) Intersection: nodes common to the main road and the waterway (bridge / crossing) */
+node(w.set1)(w.set2)->.intersection;
+.intersection out body geom 10;

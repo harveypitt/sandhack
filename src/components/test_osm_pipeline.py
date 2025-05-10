@@ -13,7 +13,17 @@ import json
 import argparse
 import subprocess
 import logging
+import time
+import re
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Import the OSMSearchProcessor
+from osm_search.osm_search import OSMSearchProcessor
+from llm_analysis.contextual_analyzer import LLMContextualAnalyzer
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -25,146 +35,276 @@ logger = logging.getLogger(__name__)
 # Default paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(SCRIPT_DIR))  # Two levels up from components
-DEFAULT_IMAGE_PATH = os.path.join(
-    PROJECT_ROOT, 
-    "data", "example", "images", "rickmansworth_example.jpg"
-)
-DEFAULT_SEARCH_AREA_PATH = os.path.join(
-    PROJECT_ROOT, 
-    "data", "example", "images", "rickmansworth_example_search_area.json"
-)
-ANALYZER_SCRIPT = os.path.join(SCRIPT_DIR, "llm_analysis", "contextual_analyzer.py")
-OSM_SEARCH_SCRIPT = os.path.join(SCRIPT_DIR, "osm_search", "osm_search.py")
-FINAL_QUERY_PATH = os.path.join(SCRIPT_DIR, "osm_search", "final_query.txt")
+COMPETITION_DIR = os.path.join(PROJECT_ROOT, "Competition Release")
 
-def run_contextual_analyzer(image_path):
+# Location mapping dictionary
+LOCATIONS = {
+    "Reading_1": {
+        "image": os.path.join(COMPETITION_DIR, "Reading_1_cleaned.jpg"),
+        "search_area": os.path.join(COMPETITION_DIR, "Reading_1_cleaned_search_area.json")
+    },
+    "Reading_2": {
+        "image": os.path.join(COMPETITION_DIR, "Reading_2_cleaned.jpg"),
+        "search_area": os.path.join(COMPETITION_DIR, "Reading_2_cleaned_search_area.json")
+    },
+    "Reading_3": {
+        "image": os.path.join(COMPETITION_DIR, "Reading_3_cleaned.jpg"),
+        "search_area": os.path.join(COMPETITION_DIR, "Reading_3_cleaned_search_area.json")
+    },
+    "Reading_4": {
+        "image": os.path.join(COMPETITION_DIR, "Reading_4_cleaned.jpg"),
+        "search_area": os.path.join(COMPETITION_DIR, "Reading_4_cleaned_search_area.json")
+    },
+    "Reading_5": {
+        "image": os.path.join(COMPETITION_DIR, "Reading_5_cleaned.jpg"),
+        "search_area": os.path.join(COMPETITION_DIR, "Reading_5_cleaned_search_area.json")
+    },
+    "Rickmansworth_2": {
+        "image": os.path.join(COMPETITION_DIR, "Rickmansworth_2_cleaned.jpg"),
+        "search_area": os.path.join(COMPETITION_DIR, "Rickmansworth_2_cleaned_search_area.json")
+    },
+    "Rickmansworth_3": {
+        "image": os.path.join(COMPETITION_DIR, "Rickmansworth_3_cleaned.jpg"),
+        "search_area": os.path.join(COMPETITION_DIR, "Rickmansworth_3_cleaned_search_area.json")
+    }
+}
+
+class OSMPipelineTester:
     """
-    Run the contextual analyzer to generate an Overpass QL query with placeholder.
-    
-    Args:
-        image_path: Path to the drone image
-    
-    Returns:
-        True if successful, False otherwise
+    Tests the complete OSM pipeline by integrating the contextual analyzer and OSM search.
     """
-    try:
-        logger.info(f"Running contextual analyzer with image: {image_path}")
+    
+    def __init__(self, output_dir=None):
+        """
+        Initialize the pipeline tester.
         
-        # Ensure the output directory exists
-        os.makedirs(os.path.join(SCRIPT_DIR, "osm_search"), exist_ok=True)
+        Args:
+            output_dir: Directory to store output files (default: script directory)
+        """
+        self.output_dir = output_dir or os.path.join(SCRIPT_DIR, "pipeline_results")
+        os.makedirs(self.output_dir, exist_ok=True)
         
-        # Run the analyzer with direct-overpass option
-        result = subprocess.run(
-            [
-                sys.executable, 
-                ANALYZER_SCRIPT, 
-                image_path, 
-                "--direct-overpass"
-            ],
-            capture_output=True,
-            text=True,
-            check=True
-        )
+        # Initialize the processors
+        self.contextual_analyzer = LLMContextualAnalyzer()
+        self.osm_processor = OSMSearchProcessor()
+    
+    def check_image_file(self, image_path):
+        """
+        Check if the image file is valid and of a supported format.
         
-        # Check if the output contains the expected JSON
+        Args:
+            image_path: Path to the image file
+            
+        Returns:
+            Tuple of (is_valid, message)
+        """
+        if not os.path.exists(image_path):
+            return False, f"Image file not found: {image_path}"
+            
+        # Check file size
+        file_size = os.path.getsize(image_path)
+        file_size_mb = file_size / (1024 * 1024)
+        
+        if file_size_mb > 20:
+            return False, f"Image file is too large: {file_size_mb:.2f} MB (max recommended is 20 MB)"
+        
+        # Check file extension
+        ext = os.path.splitext(image_path)[1].lower()
+        if ext not in ['.jpg', '.jpeg', '.png']:
+            return False, f"Image file has unsupported extension: {ext} (supported: .jpg, .jpeg, .png)"
+        
+        return True, f"Image file is valid: {file_size_mb:.2f} MB"
+    
+    def analyze_image(self, image_path, output_id=None):
+        """
+        Use the contextual analyzer to generate an Overpass QL query from an image.
+        
+        Args:
+            image_path: Path to the drone image
+            output_id: Optional identifier for output files
+            
+        Returns:
+            Generated Overpass QL query or None if failed
+        """
         try:
-            output_data = json.loads(result.stdout)
-            if "overpass_query" in output_data:
-                logger.info("Contextual analyzer ran successfully!")
-                return True
+            # Check the image file
+            is_valid, msg = self.check_image_file(image_path)
+            if not is_valid:
+                logger.error(msg)
+                return None
+            
+            logger.info(f"Analyzing image: {image_path}")
+            
+            # Generate the query using direct Overpass mode
+            result = self.contextual_analyzer.process_image(
+                image_path,
+                image_id=output_id,
+                direct_overpass=True
+            )
+            
+            if result and "overpass_query" in result:
+                query = result["overpass_query"]
+                logger.info(f"Generated Overpass QL query ({len(query)} chars)")
+                return query
             else:
-                logger.error("Contextual analyzer output doesn't contain overpass_query field")
-                return False
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse contextual analyzer output: {result.stdout}")
-            return False
-            
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Contextual analyzer failed: {e.stderr}")
-        return False
-    except Exception as e:
-        logger.error(f"Error running contextual analyzer: {e}")
-        return False
-
-def run_osm_search():
-    """
-    Run the OSM search script to process the search area and substitute the polygon string.
+                logger.error("Failed to generate Overpass QL query")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error analyzing image: {e}")
+            return None
     
-    Returns:
-        True if successful, False otherwise
-    """
-    try:
-        logger.info("Running OSM search to process polygon and substitute into query")
+    def process_search_area(self, search_area_path, query, output_id=None, feature_index=0):
+        """
+        Process a search area and execute the Overpass QL query.
         
-        # Run the OSM search script
-        result = subprocess.run(
-            [sys.executable, OSM_SEARCH_SCRIPT],
-            capture_output=True,
-            text=True,
-            check=True
+        Args:
+            search_area_path: Path to the search area GeoJSON file
+            query: Overpass QL query string
+            output_id: Optional identifier for output files
+            feature_index: Index of the feature to use (for GeoJSON FeatureCollection)
+            
+        Returns:
+            Tuple of (final_query, overpy_result, geojson_data) or (None, None, None) if failed
+        """
+        try:
+            logger.info(f"Processing search area: {search_area_path}")
+            
+            # Process the query using the OSMSearchProcessor
+            final_query, result, geojson_data = self.osm_processor.process_query(
+                query=query,
+                search_area_file=search_area_path,
+                feature_index=feature_index
+            )
+            
+            if not final_query or not result or not geojson_data:
+                logger.error("Failed to process query")
+                return None, None, None
+            
+            # Save the results if output_id is provided
+            if output_id:
+                query_path = os.path.join(self.output_dir, f"final_query_{output_id}.txt")
+                geojson_path = os.path.join(self.output_dir, f"query_result_{output_id}.geojson")
+                
+                self.osm_processor.save_query_to_file(final_query, query_path)
+                self.osm_processor.save_geojson_to_file(geojson_data, geojson_path)
+            
+            return final_query, result, geojson_data
+            
+        except Exception as e:
+            logger.error(f"Error processing search area: {e}")
+            return None, None, None
+    
+    def process_location(self, base_name, feature_index=0):
+        """
+        Process a single location through the complete pipeline.
+        
+        Args:
+            base_name: Base name of the location (e.g., "Reading_1")
+            feature_index: Index of the feature to use from GeoJSON FeatureCollection
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        # Get the location info
+        if base_name not in LOCATIONS:
+            logger.error(f"Location not found: {base_name}")
+            return False
+        
+        location_info = LOCATIONS[base_name]
+        image_path = location_info["image"]
+        search_area_path = location_info["search_area"]
+        
+        print(f"\n=== Processing {base_name} ===")
+        print(f"Image: {image_path}")
+        print(f"Search Area: {search_area_path}")
+        print(f"Feature Index: {feature_index}")
+        
+        # Step 1: Generate query from image
+        query = self.analyze_image(image_path, base_name)
+        if not query:
+            print(f"\n❌ Failed to generate query from image for {base_name}")
+            return False
+        
+        print(f"\n✓ Generated Overpass QL query ({len(query)} chars)")
+        
+        # Step 2: Process search area and execute query
+        final_query, result, geojson_data = self.process_search_area(
+            search_area_path,
+            query,
+            base_name,
+            feature_index
         )
         
-        logger.info("OSM search ran successfully!")
-        return True
-            
-    except subprocess.CalledProcessError as e:
-        logger.error(f"OSM search failed: {e.stderr}")
-        return False
-    except Exception as e:
-        logger.error(f"Error running OSM search: {e}")
-        return False
-
-def check_final_query():
-    """
-    Check if the final query was generated and display it.
-    
-    Returns:
-        True if final query exists, False otherwise
-    """
-    if os.path.exists(FINAL_QUERY_PATH):
-        try:
-            with open(FINAL_QUERY_PATH, 'r') as f:
-                query = f.read()
-            
-            logger.info(f"Final query generated successfully! ({len(query)} chars)")
-            print("\n--- Final Overpass QL Query ---")
-            print(f"{query[:500]}...")
-            print(f"\nFull query saved to: {FINAL_QUERY_PATH}")
-            print("\nYou can execute this query at: https://overpass-turbo.eu/")
-            return True
-        except Exception as e:
-            logger.error(f"Error reading final query: {e}")
+        if not final_query or not result or not geojson_data:
+            print(f"\n❌ Failed to process search area for {base_name}")
             return False
-    else:
-        logger.error(f"Final query file not found at {FINAL_QUERY_PATH}")
-        return False
+        
+        # Print results summary
+        feature_count = len(geojson_data["features"])
+        print(f"\n✓ Query executed successfully!")
+        print(f"Found {len(result.nodes)} nodes, {len(result.ways)} ways, and {len(result.relations)} relations")
+        print(f"Generated GeoJSON with {feature_count} features")
+        
+        # Save results
+        query_path = os.path.join(self.output_dir, f"final_query_{base_name}.txt")
+        geojson_path = os.path.join(self.output_dir, f"query_result_{base_name}.geojson")
+        
+        print(f"\nResults saved to:")
+        print(f"  Query: {query_path}")
+        print(f"  GeoJSON: {geojson_path}")
+        
+        return True
 
 def main():
-    """Run the complete pipeline."""
+    """Run the complete pipeline test."""
     parser = argparse.ArgumentParser(description="Test the complete OSM pipeline")
-    parser.add_argument("--image", default=DEFAULT_IMAGE_PATH, 
-                        help=f"Path to the drone image (default: {DEFAULT_IMAGE_PATH})")
+    parser.add_argument("--location", help="Base name of the location to process (e.g., 'Reading_1')")
+    parser.add_argument("--all", action="store_true", help="Process all locations in the Competition Release folder")
+    parser.add_argument("--feature-index", type=int, default=0, 
+                        help="Index of the feature to use from GeoJSON FeatureCollection (default: 0)")
+    parser.add_argument("--output-dir", help="Directory to store output files")
+    parser.add_argument("--list-locations", action="store_true", help="List all available locations")
     args = parser.parse_args()
+    
+    # Create the pipeline tester
+    tester = OSMPipelineTester(args.output_dir)
     
     print("\n=== Testing OSM Pipeline ===\n")
     
-    # Step 1: Run contextual analyzer
-    if not run_contextual_analyzer(args.image):
-        print("\n❌ Pipeline test failed at contextual analyzer step")
-        return False
+    # Just list available locations
+    if args.list_locations:
+        print("Available locations:")
+        for location in sorted(LOCATIONS.keys()):
+            print(f"  - {location}")
+        return True
     
-    # Step 2: Run OSM search
-    if not run_osm_search():
-        print("\n❌ Pipeline test failed at OSM search step")
-        return False
+    # Process all locations
+    if args.all:
+        base_names = sorted(LOCATIONS.keys())
+        print(f"Found {len(base_names)} locations: {', '.join(base_names)}")
+        
+        success_count = 0
+        for base_name in base_names:
+            if tester.process_location(base_name, args.feature_index):
+                success_count += 1
+        
+        print(f"\n=== Completed processing {success_count}/{len(base_names)} locations ===\n")
+        return success_count == len(base_names)
     
-    # Step 3: Check final query
-    if not check_final_query():
-        print("\n❌ Pipeline test failed at final query check")
-        return False
+    # Process a specific location
+    elif args.location:
+        return tester.process_location(args.location, args.feature_index)
     
-    print("\n✅ Pipeline test completed successfully!")
-    return True
+    # Default case - show usage
+    else:
+        print("Please specify either:")
+        print("  --location NAME      Process a specific location (e.g., --location Reading_1)")
+        print("  --all                Process all locations")
+        print("  --feature-index N    Use the Nth feature from the GeoJSON FeatureCollection (default: 0)")
+        print("  --output-dir DIR     Specify output directory for results")
+        print("  --list-locations     List all available locations")
+        return False
 
 if __name__ == "__main__":
     success = main()

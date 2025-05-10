@@ -267,7 +267,7 @@ class LLMContextualAnalyzer:
                                    "The query should return the nodes that help to identfiy the location."
                                    "At the end of your Overpass QL, include a numbered “intersection” step that returns only the nodes belonging to the sets so you identify a few key locations only."
                                    "Do not return more than 10 nodes."
-                                   "include a {poly_string} in the query to ensure the query is run in the correct area."
+                                   "include a {poly_string} placeholderin the query to ensure the query is constrained to the correct area."
                                    "At the end of the script, include exactly one “intersection” step that returns only the nodes belonging to both your two chosen sets, then immediately terminate with out body geom;"
                     },
                     {
