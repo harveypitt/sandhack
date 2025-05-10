@@ -2,8 +2,10 @@
 """
 LLM Contextual Analysis Agent
 
-This module uses OpenAI's o3 model to analyze drone images and generate structured
+This module uses OpenAI's GPT-4o model to analyze drone images and generate structured
 descriptions of the scenes, focusing on landmarks and features that can aid in relocalization.
+
+Logs are emitted both to stdout and to a file named `contextual_analyzer.log` (see LOG_LEVEL env var).
 """
 
 import os
@@ -11,15 +13,20 @@ import json
 import base64
 import logging
 from pathlib import Path
-from typing import Dict, List, Union, Optional
+from typing import Dict, Optional
 from dotenv import load_dotenv
 import requests
 from requests.exceptions import RequestException, Timeout
 
 # Configure logging
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=LOG_LEVEL,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('contextual_analyzer.log', encoding='utf-8')
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -31,34 +38,31 @@ if not OPENAI_API_KEY:
 
 # Constants
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
-MODEL_NAME = "o3"  # OpenAI's o3 model
+VISION_MODEL = "o3"  # OpenAI's vision model for image analysis
+# NOTE: Only the o3 vision-capable model is used; no secondary model required.
 
 # Prompts from documentation
 # Load prompts from a file or define them here
 SCENE_ANALYSIS_PROMPT = """
-You are an expert in aerial image analysis. Given a drone image taken in a British urban or suburban setting, describe the scene in detail, focusing on:
-- Landmarks (e.g., parks, cul-de-sacs, road markings, housing styles)
-- Notable features that could help identify the location
-- Any clues about the region or town layout
+You are an expert in aerial image analysis. You will receive a drone image taken somewhere in the United Kingdom along with short instructions.
 
-Be concise but specific. Example output:
-"This image shows a suburban street bordering a large park, with semi-detached houses, diagonal footpaths, and UK road markings. Likely a commuter town near London."
-"""
+Your task is to respond ONLY with a valid JSON object containing **four keys**:
 
-OUTPUT_STRUCTURING_PROMPT = """
-Given the following freeform description of a drone image scene, extract and return a JSON object with:
-- "description": a concise summary of the scene
-- "keywords": a list of key landmarks or features (e.g., "park", "cul-de-sac", "semi-detached houses", "UK road markings")
+  "description":  A single concise sentence that summarises the visible scene (do NOT include any place-name).
+  "features":     An array of 5-12 short landmark / feature phrases (e.g. "park", "cul-de-sac", "semi-detached houses", "UK road markings"). No location names.
+  "estimated-location": Your best guess of the town or locality where the image was taken. This should be a short free-text phrase such as "Rickmansworth, Hertfordshire, UK". If uncertain, still provide the most likely answer – do NOT leave this blank.
+  "confidence":   An integer 0-100 representing how confident you are in the estimated-location.
 
-Output ONLY the JSON object, with no additional text.
-
-Description: {description}
+Guidelines:
+• The description and features MUST NOT contain any place-name.  
+• The estimated-location field MUST be separate.  
+• Output **only** raw JSON – no markdown fences or additional commentary.
 """
 
 
 class LLMContextualAnalyzer:
     """
-    Uses o3 vision model to analyze drone images and generate structured descriptions.
+    Uses vision models to analyze drone images and generate structured descriptions.
     """
     
     def __init__(self):
@@ -68,6 +72,8 @@ class LLMContextualAnalyzer:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}"
         }
+        # Store token usage statistics per request type
+        self.usage_stats: Dict[str, Dict[str, int]] = {}
         logger.info("LLM Contextual Analyzer initialized")
     
     def encode_image(self, image_path: str) -> str:
@@ -87,16 +93,16 @@ class LLMContextualAnalyzer:
             logger.error(f"Error encoding image: {e}")
             raise
     
-    def analyze_image(self, image_path: str, timeout: int = 30) -> Optional[str]:
+    def analyze_image(self, image_path: str, timeout: int = 300) -> Optional[Dict]:
         """
-        Send the image to o3 for scene analysis.
+        Send the image to vision model for scene analysis.
         
         Args:
             image_path: Path to the drone image
-            timeout: API request timeout in seconds
+            timeout: API request timeout in seconds (default: 5 minutes)
             
         Returns:
-            Raw text description of the scene or None if failed
+            Structured data dictionary (description, features, estimated-location, confidence) or None if failed
         """
         if not os.path.exists(image_path):
             logger.error(f"Image file not found: {image_path}")
@@ -106,7 +112,7 @@ class LLMContextualAnalyzer:
             base64_image = self.encode_image(image_path)
             
             payload = {
-                "model": MODEL_NAME,
+                "model": VISION_MODEL,
                 "messages": [
                     {
                         "role": "system", 
@@ -117,7 +123,7 @@ class LLMContextualAnalyzer:
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Analyze this drone image for location features:"
+                                "text": "Analyse this drone image and follow the instructions to produce the required JSON object."
                             },
                             {
                                 "type": "image_url",
@@ -127,8 +133,7 @@ class LLMContextualAnalyzer:
                             }
                         ]
                     }
-                ],
-                "max_tokens": 300
+                ]
             }
             
             logger.info(f"Sending image analysis request for: {Path(image_path).name}")
@@ -140,87 +145,50 @@ class LLMContextualAnalyzer:
             )
             
             response.raise_for_status()
+
             response_data = response.json()
-            
-            if "choices" in response_data and len(response_data["choices"]) > 0:
-                return response_data["choices"][0]["message"]["content"]
-            else:
+
+            if "choices" not in response_data or not response_data["choices"]:
                 logger.warning(f"Unexpected response format: {response_data}")
+                return None
+
+            # Capture usage if available
+            if "usage" in response_data:
+                self.usage_stats["vision"] = response_data["usage"]
+
+            json_text = response_data["choices"][0]["message"]["content"]
+
+            # Clean up code fences
+            if "```" in json_text:
+                json_text = json_text.split("```")[1]
+                if json_text.startswith("json"):
+                    json_text = json_text[4:]
+
+            try:
+                structured_data = json.loads(json_text.strip())
+                return structured_data
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON from vision model: {e} | Raw: {json_text}")
                 return None
                 
         except Timeout:
             logger.error(f"Request timed out after {timeout} seconds")
             return None
         except RequestException as e:
-            logger.error(f"API request failed: {e}")
+            # Log response details if available
+            response = getattr(e, 'response', None)
+            if response is not None:
+                logger.error(
+                    "API request failed: %s | Status: %s | Response: %s",
+                    e,
+                    response.status_code,
+                    response.text
+                )
+            else:
+                logger.error(f"API request failed: {e}")
             return None
         except Exception as e:
             logger.error(f"Unexpected error in image analysis: {e}")
-            return None
-    
-    def structure_output(self, description: str, timeout: int = 10) -> Optional[Dict]:
-        """
-        Convert the freeform text description into a structured JSON format.
-        
-        Args:
-            description: Raw text description from o3
-            timeout: API request timeout in seconds
-            
-        Returns:
-            Structured JSON with description and keywords or None if failed
-        """
-        try:
-            prompt = OUTPUT_STRUCTURING_PROMPT.format(description=description)
-            
-            payload = {
-                "model": MODEL_NAME,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                "max_tokens": 300
-            }
-            
-            logger.info("Sending request to structure output")
-            response = requests.post(
-                OPENAI_API_URL,
-                headers=self.headers,
-                json=payload,
-                timeout=timeout
-            )
-            
-            response.raise_for_status()
-            response_data = response.json()
-            
-            if "choices" in response_data and len(response_data["choices"]) > 0:
-                json_text = response_data["choices"][0]["message"]["content"]
-                
-                # Clean up the response in case it contains markdown formatting or extra text
-                try:
-                    if "```" in json_text:
-                        json_text = json_text.split("```")[1]
-                        if json_text.startswith("json"):
-                            json_text = json_text[4:]
-                    
-                    structured_data = json.loads(json_text.strip())
-                    return structured_data
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to parse JSON response: {e}, Response was: {json_text}")
-                    return None
-            
-            logger.warning(f"Unexpected response format: {response_data}")
-            return None
-            
-        except Timeout:
-            logger.error(f"Request timed out after {timeout} seconds")
-            return None
-        except RequestException as e:
-            logger.error(f"API request failed: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected error in structuring output: {e}")
             return None
     
     def process_image(self, image_path: str, image_id: str = None) -> Optional[Dict]:
@@ -232,29 +200,28 @@ class LLMContextualAnalyzer:
             image_id: Optional identifier for the image
             
         Returns:
-            Structured JSON with image_id, description, and keywords
+            Structured JSON with image_id, description, and features
         """
         # Use filename as image_id if not provided
         if image_id is None:
             image_id = Path(image_path).stem
         
-        # Step 1: Get raw description
-        raw_description = self.analyze_image(image_path)
-        if not raw_description:
+        # Reset usage statistics for this run
+        self.usage_stats = {}
+
+        # Step 1: Analyze image and receive structured data directly
+        structured_data = self.analyze_image(image_path)
+        if not structured_data:
             logger.error(f"Failed to analyze image: {image_path}")
             return None
-        
-        logger.info(f"Raw description: {raw_description}")
-        
-        # Step 2: Structure the output
-        structured_data = self.structure_output(raw_description)
-        if not structured_data:
-            logger.error(f"Failed to structure output for image: {image_path}")
-            return None
-        
-        # Step 3: Add image_id to the structured data
+
+        logger.info(f"Structured data from vision model: {structured_data}")
+
+        # Step 2: Add image_id and token usage
         structured_data["image_id"] = image_id
-        
+        if self.usage_stats:
+            structured_data["usage"] = self.usage_stats
+
         return structured_data
 
 
@@ -262,7 +229,7 @@ class LLMContextualAnalyzer:
 if __name__ == "__main__":
     import argparse
     
-    parser = argparse.ArgumentParser(description="Analyze drone images using o3")
+    parser = argparse.ArgumentParser(description="Analyze drone images using the o3 vision model")
     parser.add_argument("image_path", help="Path to the drone image")
     parser.add_argument("--id", help="Optional image identifier")
     args = parser.parse_args()
