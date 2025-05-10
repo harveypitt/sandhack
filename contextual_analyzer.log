@@ -1,0 +1,47 @@
+2025-05-10 22:25:43,857 - __main__ - WARNING - OpenAI API key not found in environment variables. Set OPENAI_API_KEY in .env file.
+2025-05-10 22:25:43,860 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:25:43,860 - __main__ - ERROR - Image file not found: path/to/image.jpg
+2025-05-10 22:25:43,861 - __main__ - ERROR - Failed to analyze image: path/to/image.jpg
+2025-05-10 22:27:11,674 - __main__ - WARNING - OpenAI API key not found in environment variables. Set OPENAI_API_KEY in .env file.
+2025-05-10 22:27:11,677 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:27:11,701 - __main__ - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 22:27:14,973 - __main__ - ERROR - API request failed: 401 Client Error: Unauthorized for url: https://api.openai.com/v1/chat/completions | Status: 401 | Response: {
+    "error": {
+        "message": "Incorrect API key provided: None. You can find your API key at https://platform.openai.com/account/api-keys.",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "invalid_api_key"
+    }
+}
+
+2025-05-10 22:27:14,976 - __main__ - ERROR - Failed to analyze image: /Users/harveypitt/Documents/Alive Industries/Repos/sandhack/data/example/images/rickmansworth_example.jpg
+2025-05-10 22:27:58,042 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:27:58,069 - __main__ - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 22:28:21,646 - __main__ - INFO - Structured data from vision model: {'description': 'Suburban residential street with parked cars runs alongside a large grassy parkland.', 'features': ['semi-detached houses', 'detached houses', 'front driveways with parked cars', 'UK road markings', 'give-way triangle on road', 'tree-lined boundary', 'expansive grass field', 'footpath across park'], 'estimated-location': 'Hemel Hempstead, Hertfordshire, UK', 'confidence': 45}
+2025-05-10 22:28:21,647 - __main__ - ERROR - Error generating Overpass QL query: 'poly_string'
+2025-05-10 22:28:21,648 - __main__ - WARNING - Failed to generate Overpass QL query
+2025-05-10 22:30:07,350 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:30:07,377 - __main__ - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 22:30:37,609 - __main__ - INFO - Structured data from vision model: {'description': 'Suburban houses line a road that borders a large grassy common with footpaths and mature trees.', 'features': ['open green common', 'diagonal footpath across grass', 'cluster of mature trees', 'semi-detached and detached houses', 'driveways with parked cars', 'UK road markings and junction arrows', 'front and back garden lawns', 'T-junction with traffic island', 'gravel and paved parking areas'], 'estimated-location': 'Chorleywood, Hertfordshire, UK', 'confidence': 25}
+2025-05-10 22:30:37,609 - __main__ - INFO - Sending Overpass QL generation request
+2025-05-10 22:31:19,249 - __main__ - INFO - Overpass QL query generated successfully
+2025-05-10 22:34:38,854 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:34:38,882 - __main__ - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 22:35:08,852 - __main__ - INFO - Structured data from vision model: {'description': 'Suburban houses line a road opposite a large grassy park with trees and footpaths.', 'features': ['large grassy common', 'mature deciduous trees', 'diagonal footpath across grass', 'detached and semi-detached houses', 'front driveways with parked cars', 'hedged back gardens', "UK road markings 'AHEAD ONLY'", 'give-way junction', 'tiled pitched roofs', 'boundary tree line between road and park'], 'estimated-location': 'Harpenden, Hertfordshire, UK', 'confidence': 40}
+2025-05-10 22:35:08,852 - __main__ - INFO - Sending Overpass QL generation request
+2025-05-10 22:35:47,605 - __main__ - INFO - Overpass QL query generated successfully
+2025-05-10 22:35:47,606 - __main__ - ERROR - Error writing Overpass QL query to file: [Errno 30] Read-only file system: '/osm_search'
+2025-05-10 22:40:06,991 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:40:07,015 - __main__ - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 22:40:45,720 - __main__ - INFO - Structured data from vision model: {'description': 'A suburban street borders a grassy common with trees and footpaths.', 'features': ['grassy common', 'diagonal footpaths', 'mature deciduous trees', 'semi-detached houses', 'detached houses with driveways', 'pitched tiled roofs', 'front and rear gardens', 'UK road markings with "AHEAD ONLY"', 'parked cars in driveways', 'T-junction with give-way lines'], 'estimated-location': 'Harpenden, Hertfordshire, UK', 'confidence': 22}
+2025-05-10 22:40:45,761 - __main__ - INFO - Sending direct Overpass QL generation request for: rickmansworth_example.jpg
+2025-05-10 22:41:17,074 - __main__ - INFO - Overpass QL query generated successfully
+2025-05-10 22:41:17,076 - __main__ - ERROR - Error writing Overpass QL query to file: [Errno 21] Is a directory: '/Users/harveypitt/Documents/Alive Industries/Repos/sandhack/src/components/llm_analysis/../osm_search'
+2025-05-10 22:49:45,670 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:49:45,695 - __main__ - INFO - Sending direct Overpass QL generation request for: rickmansworth_example.jpg
+2025-05-10 22:50:22,158 - __main__ - INFO - Direct Overpass QL query generated successfully
+2025-05-10 22:50:22,159 - __main__ - INFO - Overpass QL query written to /Users/harveypitt/Documents/Alive Industries/Repos/sandhack/src/components/llm_analysis/../osm_search.json
+2025-05-10 22:53:47,307 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 22:53:47,336 - __main__ - INFO - Sending direct Overpass QL generation request for: rickmansworth_example.jpg
+2025-05-10 22:54:47,371 - __main__ - INFO - Direct Overpass QL query generated successfully
+2025-05-10 22:54:47,373 - __main__ - INFO - Overpass QL query written to /Users/harveypitt/Documents/Alive Industries/Repos/sandhack/src/components/llm_analysis/../osm_search/osm_search.json
