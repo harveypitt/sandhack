@@ -1,13 +1,13 @@
 /**
  * Home page component for the Location Estimation App
  */
-import { Box, Heading, Text, VStack, Link, Center } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, Link, Container } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 
 const HomePage = () => {
   return (
-    <Center w="100%">
-      <VStack w="100%" spacing={6} align="center">
+    <Container>
+      <VStack spacing={6} align="center" w="100%">
         <Box textAlign="center">
           <Heading size="lg" mb={4}>Welcome to the Location Estimation App</Heading>
           <Text fontSize="lg" mb={6}>
@@ -47,7 +47,7 @@ const HomePage = () => {
           </Box>
         </VStack>
       </VStack>
-    </Center>
+    </Container>
   );
 };
 

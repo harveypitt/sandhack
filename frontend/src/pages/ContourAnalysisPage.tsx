@@ -29,6 +29,7 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Container,
 } from '@chakra-ui/react';
 import { extractContours, matchContours } from '../api/contourApi';
 
@@ -187,7 +188,7 @@ const ContourAnalysisPage: React.FC = () => {
   };
   
   return (
-    <Box width="100%" display="flex" flexDirection="column" alignItems="center">
+    <Container>
       <VStack spacing={6} width="100%" maxW="800px" align="center">
         <Heading size="md" mb={2} mt={6}>Contour Analysis</Heading>
         <Text mb={4} textAlign="center">
@@ -590,7 +591,7 @@ const ContourAnalysisPage: React.FC = () => {
           </Text>
         </Box>
       </VStack>
-    </Box>
+    </Container>
   );
 };
 
