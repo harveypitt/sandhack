@@ -1,0 +1,303 @@
+{
+  "summary": {
+    "total_images": 7,
+    "successful_analyses": 7,
+    "location_matches": 2,
+    "location_mismatches": 5,
+    "analysis_failures": 0
+  },
+  "results": [
+    {
+      "filename": "Reading_1_cleaned.jpg",
+      "expected_location": "Reading",
+      "estimated_location": "Berkhamsted, Hertfordshire, UK",
+      "confidence": 25,
+      "processing_time": 59.39018416404724,
+      "location_match": false,
+      "full_result": {
+        "description": "A canal-side street of Victorian terraces with small gardens, adjacent to an industrial warehouse and residential courtyard parking.",
+        "features": [
+          "canal waterfront",
+          "Victorian terraced houses",
+          "small rear gardens",
+          "UK road markings",
+          "double yellow lines at junction",
+          "industrial warehouse with metal roof",
+          "parked cars along kerb",
+          "courtyard parking area",
+          "red-brick chimneys",
+          "vans in commercial yard"
+        ],
+        "estimated-location": "Berkhamsted, Hertfordshire, UK",
+        "confidence": 25,
+        "image_id": "Reading_1_cleaned",
+        "usage": {
+          "vision": {
+            "prompt_tokens": 1228,
+            "completion_tokens": 1304,
+            "total_tokens": 2532,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 1152,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "filename": "Reading_2_cleaned.jpg",
+      "expected_location": "Reading",
+      "estimated_location": "Nottingham, Nottinghamshire, UK",
+      "confidence": 30,
+      "processing_time": 46.068037271499634,
+      "location_match": false,
+      "full_result": {
+        "description": "A cluster of red-brick terraced housing sits alongside a busy dual carriageway, with a small pub and parking courts visible.",
+        "features": [
+          "dual carriageway with bus lane markings",
+          "Victorian-style terraced houses",
+          "pub with outdoor seating and umbrellas",
+          "small residential car parks",
+          "back gardens and allotment plots",
+          "communal grass area",
+          "UK yellow road lines and markings",
+          "tree-lined pavements"
+        ],
+        "estimated-location": "Nottingham, Nottinghamshire, UK",
+        "confidence": 30,
+        "image_id": "Reading_2_cleaned",
+        "usage": {
+          "vision": {
+            "prompt_tokens": 1228,
+            "completion_tokens": 596,
+            "total_tokens": 1824,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 448,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "filename": "Reading_3_cleaned.jpg",
+      "expected_location": "Reading",
+      "estimated_location": "Henley-on-Thames, Oxfordshire, UK",
+      "confidence": 20,
+      "processing_time": 62.42230415344238,
+      "location_match": false,
+      "full_result": {
+        "description": "A small town scene with a stone church, adjacent graveyard, residential terraces and a central tree-lined green beside a gravel car park.",
+        "features": [
+          "stone parish church",
+          "graveyard",
+          "Victorian terraced houses",
+          "gravel car park",
+          "tree-lined green strip",
+          "UK road markings",
+          "pitched tiled roofs",
+          "on-street parked cars"
+        ],
+        "estimated-location": "Henley-on-Thames, Oxfordshire, UK",
+        "confidence": 20,
+        "image_id": "Reading_3_cleaned",
+        "usage": {
+          "vision": {
+            "prompt_tokens": 1228,
+            "completion_tokens": 716,
+            "total_tokens": 1944,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 576,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "filename": "Reading_4_cleaned.jpg",
+      "expected_location": "Reading",
+      "estimated_location": "Reading, Berkshire, UK",
+      "confidence": 22,
+      "processing_time": 38.5556480884552,
+      "location_match": true,
+      "full_result": {
+        "description": "Aerial view of terraced residential streets surrounding a small inner-block cemetery and car park.",
+        "features": [
+          "Victorian terraced houses",
+          "small back gardens",
+          "inner-block cemetery with headstones",
+          "on-street parked cars",
+          "UK road markings and yellow lines",
+          "small car park with disabled bay",
+          "light industrial warehouse building",
+          "narrow residential streets",
+          "scattered mature trees"
+        ],
+        "estimated-location": "Reading, Berkshire, UK",
+        "confidence": 22,
+        "image_id": "Reading_4_cleaned",
+        "usage": {
+          "vision": {
+            "prompt_tokens": 1228,
+            "completion_tokens": 556,
+            "total_tokens": 1784,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 448,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "filename": "Reading_5_cleaned.jpg",
+      "expected_location": "Reading",
+      "estimated_location": "Cambridge, Cambridgeshire, UK",
+      "confidence": 18,
+      "processing_time": 71.42018985748291,
+      "location_match": false,
+      "full_result": {
+        "description": "Residential cul-de-sac with brick flats, parking areas and a modern solar-panelled building beside a tree-lined street.",
+        "features": [
+          "brick apartment blocks",
+          "modern building with extensive solar panels",
+          "cul-de-sac layout",
+          "car parking bays",
+          "double yellow lines",
+          "UK road markings",
+          "mature deciduous trees",
+          "pitched tile roofs",
+          "small landscaped courtyards"
+        ],
+        "estimated-location": "Cambridge, Cambridgeshire, UK",
+        "confidence": 18,
+        "image_id": "Reading_5_cleaned",
+        "usage": {
+          "vision": {
+            "prompt_tokens": 1228,
+            "completion_tokens": 504,
+            "total_tokens": 1732,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 384,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "filename": "Rickmansworth_2_cleaned.jpg",
+      "expected_location": "Rickmansworth",
+      "estimated_location": "Rickmansworth, Hertfordshire, UK",
+      "confidence": 87,
+      "processing_time": 66.75203776359558,
+      "location_match": true,
+      "full_result": {
+        "description": "A civic complex with council buildings, a rotunda-fronted library, car parks, gardens and a bowling green beside a mini roundabout.",
+        "features": [
+          "council office complex",
+          "rotunda-fronted public library",
+          "mini roundabout with UK road markings",
+          "bowling green",
+          "formal ornamental garden with star-shaped paths",
+          "solar panels on roof",
+          "marked car parks",
+          "police vehicles parking bays",
+          "mature trees and hedges"
+        ],
+        "estimated-location": "Rickmansworth, Hertfordshire, UK",
+        "confidence": 87,
+        "image_id": "Rickmansworth_2_cleaned",
+        "usage": {
+          "vision": {
+            "prompt_tokens": 1228,
+            "completion_tokens": 1568,
+            "total_tokens": 2796,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 1408,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "filename": "Rickmansworth_3_cleaned.jpg",
+      "expected_location": "Rickmansworth",
+      "estimated_location": "Gerrards Cross, Buckinghamshire, UK",
+      "confidence": 30,
+      "processing_time": 43.513829946517944,
+      "location_match": false,
+      "full_result": {
+        "description": "Tree-lined suburban streets with large detached houses and gardens meet at a three-way junction.",
+        "features": [
+          "detached houses with pitched roofs",
+          "three-way junction with \"STOP\" road marking",
+          "driveways with parked cars",
+          "solar panels on rooftops",
+          "large private gardens",
+          "mature deciduous trees",
+          "UK style road markings and signage",
+          "brick and gravel driveways"
+        ],
+        "estimated-location": "Gerrards Cross, Buckinghamshire, UK",
+        "confidence": 30,
+        "image_id": "Rickmansworth_3_cleaned",
+        "usage": {
+          "vision": {
+            "prompt_tokens": 1228,
+            "completion_tokens": 464,
+            "total_tokens": 1692,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 320,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        }
+      }
+    }
+  ]
+}

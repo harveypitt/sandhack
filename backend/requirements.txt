@@ -1,0 +1,9 @@
+fastapi>=0.95.0
+uvicorn>=0.22.0
+python-multipart>=0.0.6
+matplotlib>=3.7.5
+owslib>=0.31.0
+pillow>=10.4.0
+pyproj>=3.5.0
+shapely>=2.0.7
+tabulate 
