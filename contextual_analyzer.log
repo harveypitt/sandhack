@@ -1,0 +1,185 @@
+2025-05-10 15:00:29,637 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:00:29,658 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:00:29,692 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:00:51,918 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 400 245
+2025-05-10 15:00:51,921 - contextual_analyzer - ERROR - API request failed: 400 Client Error: Bad Request for url: https://api.openai.com/v1/chat/completions | Status: 400 | Response: {
+  "error": {
+    "message": "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.",
+    "type": "invalid_request_error",
+    "param": "max_tokens",
+    "code": "unsupported_parameter"
+  }
+}
+2025-05-10 15:00:51,924 - contextual_analyzer - ERROR - Failed to analyze image: /Users/henryallen/Desktop/sandhack/data/example/images/rickmansworth_example.jpg
+2025-05-10 15:03:54,620 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:03:54,646 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:03:54,680 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:04:21,059 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 200 None
+2025-05-10 15:04:21,067 - contextual_analyzer - INFO - Raw description: • Setting: Classic English suburb where a curved residential road borders a public green.  
+• Landmarks & layout:  
+  – Left half is a large park/common with mown grass, informal diagonal desire-line footpaths and mature deciduous trees.  
+  – Road forms the park’s eastern edge, bending gently south-north and meeting a side street in a small T-junction with “AHEAD ONLY” and give-way markings.  
+  – Double yellows at the corner, white UK arrows/triangles and cars parked facing the flow confirm left-hand traffic.  
+  – Housing: rows of 1930s-50s semi-detached and short-terrace homes, red/brown tiled pitched roofs, bay windows, small rear gardens, gravel or block-paved driveways holding 1–2 cars. Loft conversions and rear extensions are visible—typical of commuter belts around London and other southern English towns.  
+  – Plot pattern is rectilinear but slightly staggered, indicating an inter-war estate rather than a rigid Victorian grid.  
+• Regional clues: mixture of semis, abundant hedges, narrow carriageway without centre line, and immediate transition from housing to open common land all point to a Home Counties or South-East England commuter suburb rather than an inner-city area.
+2025-05-10 15:04:21,068 - contextual_analyzer - INFO - Sending request to structure output using gpt-4o
+2025-05-10 15:04:21,071 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:04:23,243 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 200 None
+2025-05-10 15:06:31,480 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:06:31,512 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:06:31,550 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:07:17,588 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 200 None
+2025-05-10 15:07:17,600 - contextual_analyzer - INFO - Raw description: • Scene layout  
+  – Left half: a wide expanse of rough-cut grass criss-crossed by dirt footpaths – the sort of public “common” or village green found in many Home-Counties towns. Mature deciduous trees form a ragged line just inside the verge.  
+  – Centre: a single carriageway road running roughly north–south. UK features are clear: “AHEAD ONLY” stencil, left-facing arrow, yellow kerb lines at the bend, and a small triangular traffic-calming island at the side-road junction.  
+  – Right half: two parallel residential streets of 1920--40s housing. Mostly semi-detached, hipped red-tile roofs, front bay windows, gravel or block-paved drives holding multiple cars. Back gardens are 20–25 m deep, with hedges rather than high fences – typical outer-London/ Home-Counties suburbia.
+
+• Notable clues  
+  1. Edge-of-common arrangement (houses on one side, open grass on the other) is classic for places such as Harpenden Common, Chorleywood Common, Chesham Bois Common, etc.  
+  2. Road markings match Hertfordshire/Bucks/Surrey traffic-calming practice (island with “ahead only” legend is common there).  
+  3. Absence of high-density infill or terraces points to a higher-value commuter belt rather than an inner-city location.
+
+• Best-guess location  
+  This looks most like the eastern edge of Harpenden Common in Hertfordshire – e.g., along Southdown Road / Commonside – where 1930s semis face directly onto the common with informal paths and mature trees exactly in this configuration.
+2025-05-10 15:07:17,600 - contextual_analyzer - INFO - Sending request to structure output using gpt-4o
+2025-05-10 15:07:17,604 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:07:24,838 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 200 None
+2025-05-10 15:12:03,525 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:12:03,565 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:12:03,605 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:15:35,794 - contextual_analyzer - ERROR - Request timed out after 180 seconds
+2025-05-10 15:15:35,798 - contextual_analyzer - ERROR - Failed to analyze image: /Users/henryallen/Desktop/sandhack/data/example/images/rickmansworth_example.jpg
+2025-05-10 15:26:49,961 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:26:50,000 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:26:50,048 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:28:33,132 - contextual_analyzer - ERROR - API request failed: HTTPSConnectionPool(host='api.openai.com', port=443): Max retries exceeded with url: /v1/chat/completions (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:2406)')))
+2025-05-10 15:28:33,135 - contextual_analyzer - ERROR - Failed to analyze image: /Users/henryallen/Desktop/sandhack/data/example/images/rickmansworth_example.jpg
+2025-05-10 15:31:29,981 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:31:30,008 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:31:30,039 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:32:12,467 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 200 None
+2025-05-10 15:32:12,476 - contextual_analyzer - INFO - Raw description: This is a classic British suburb edging directly onto an open common or recreation ground.
+
+What I see
+• Left half of the frame is uninterrupted grassland with scattered mature oaks and beeches. Two well-worn diagonal footpaths cut across the turf – typical of a public common rather than a manicured park.  
+• A narrow single-carriageway road separates the green from housing. On that road is a large “AHEAD ONLY” stencil and a painted triangle “give-way” marking – standard UK road furniture.  
+• A small T-junction feeds into a wider residential street running left–right. Both junction corners have dropped kerbs and buff-coloured tactile paving blocks, another UK detail.  
+• Housing stock: mostly 1930s–1950s semi-detached or short terraces with hipped clay-tile roofs, bay windows, integrated garages, and short front drives finished in gravel or block paving. Plot widths suggest outer-London or Home Counties rather than tight inner-city lots.  
+• Back gardens are good-sized with lawns, sheds, and the occasional conservatory; rear extensions have the mix of flat EPDM roofs and pitched tiles common in permitted-development projects.  
+• Vehicles: right-hand-parking orientation, a high proportion of small hatchbacks and SUVs, few on-street parking controls – again characteristic of commuter-belt suburbs.  
+• Road layout: gently curving lanes, no through-route geometry, implying a residential area that grew along the edge of an historical common rather than a planned estate.
+
+Best guess at location
+The combination of a sizeable common, 1930s suburbs, and Home-Counties feel points to commuter towns north of London such as Harpenden, Berkhamsted, or Welwyn Garden City. The scene most closely resembles the eastern edge of Harpenden Common, where residential roads (e.g., Carlton Road or Sun Lane) back straight onto the grassland.
+
+So: “Suburban street bordering Harpenden Common, Hertfordshire” is my best estimate.
+2025-05-10 15:32:12,477 - contextual_analyzer - INFO - Sending request to structure output using gpt-4o
+2025-05-10 15:32:12,479 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:32:14,449 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 200 None
+2025-05-10 15:41:54,147 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:41:54,174 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:41:54,206 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.openai.com:443
+2025-05-10 15:42:21,818 - urllib3.connectionpool - DEBUG - https://api.openai.com:443 "POST /v1/chat/completions HTTP/11" 200 None
+2025-05-10 15:42:21,822 - contextual_analyzer - DEBUG - o3 stream ➜ {"
+2025-05-10 15:42:21,822 - contextual_analyzer - DEBUG - o3 stream ➜ description
+2025-05-10 15:42:21,822 - contextual_analyzer - DEBUG - o3 stream ➜ ":"
+2025-05-10 15:42:21,822 - contextual_analyzer - DEBUG - o3 stream ➜ A
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜  suburban
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜  street
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜  with
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜  semi
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜ -
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜ det
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜ ached
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜  houses
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜  and
+2025-05-10 15:42:21,823 - contextual_analyzer - DEBUG - o3 stream ➜  drive
+2025-05-10 15:42:21,824 - contextual_analyzer - DEBUG - o3 stream ➜ ways
+2025-05-10 15:42:21,824 - contextual_analyzer - DEBUG - o3 stream ➜  borders
+2025-05-10 15:42:21,824 - contextual_analyzer - DEBUG - o3 stream ➜  a
+2025-05-10 15:42:21,824 - contextual_analyzer - DEBUG - o3 stream ➜  large
+2025-05-10 15:42:22,279 - contextual_analyzer - DEBUG - o3 stream ➜  green
+2025-05-10 15:42:22,280 - contextual_analyzer - DEBUG - o3 stream ➜  park
+2025-05-10 15:42:22,281 - contextual_analyzer - DEBUG - o3 stream ➜  with
+2025-05-10 15:42:22,281 - contextual_analyzer - DEBUG - o3 stream ➜  foot
+2025-05-10 15:42:22,281 - contextual_analyzer - DEBUG - o3 stream ➜ paths
+2025-05-10 15:42:22,282 - contextual_analyzer - DEBUG - o3 stream ➜  and
+2025-05-10 15:42:22,282 - contextual_analyzer - DEBUG - o3 stream ➜  mature
+2025-05-10 15:42:22,282 - contextual_analyzer - DEBUG - o3 stream ➜  trees
+2025-05-10 15:42:22,282 - contextual_analyzer - DEBUG - o3 stream ➜ .","
+2025-05-10 15:42:22,282 - contextual_analyzer - DEBUG - o3 stream ➜ keywords
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜ ":["
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜ semi
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜ -
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜ det
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜ ached
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜  houses
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,283 - contextual_analyzer - DEBUG - o3 stream ➜ det
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜ ached
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜  houses
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜ drive
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜ ways
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜  with
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜  parked
+2025-05-10 15:42:22,284 - contextual_analyzer - DEBUG - o3 stream ➜  cars
+2025-05-10 15:42:22,285 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,285 - contextual_analyzer - DEBUG - o3 stream ➜ tree
+2025-05-10 15:42:22,285 - contextual_analyzer - DEBUG - o3 stream ➜ -
+2025-05-10 15:42:22,285 - contextual_analyzer - DEBUG - o3 stream ➜ lined
+2025-05-10 15:42:22,285 - contextual_analyzer - DEBUG - o3 stream ➜  green
+2025-05-10 15:42:22,285 - contextual_analyzer - DEBUG - o3 stream ➜  space
+2025-05-10 15:42:22,285 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜ foot
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜ path
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜  across
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜  grass
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜ junction
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜  road
+2025-05-10 15:42:22,286 - contextual_analyzer - DEBUG - o3 stream ➜  markings
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ front
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜  and
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜  back
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜  gardens
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ res
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ idential
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜  rooft
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ ops
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,287 - contextual_analyzer - DEBUG - o3 stream ➜ UK
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜  road
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜  signage
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜ boundary
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜  hed
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜ ges
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜ "],
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜ "
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜ estimated
+2025-05-10 15:42:22,288 - contextual_analyzer - DEBUG - o3 stream ➜ _location
+2025-05-10 15:42:22,289 - contextual_analyzer - DEBUG - o3 stream ➜ ":"
+2025-05-10 15:42:22,289 - contextual_analyzer - DEBUG - o3 stream ➜ St
+2025-05-10 15:42:22,289 - contextual_analyzer - DEBUG - o3 stream ➜  Alb
+2025-05-10 15:42:22,289 - contextual_analyzer - DEBUG - o3 stream ➜ ans
+2025-05-10 15:42:22,290 - contextual_analyzer - DEBUG - o3 stream ➜ ,
+2025-05-10 15:42:22,290 - contextual_analyzer - DEBUG - o3 stream ➜  Hert
+2025-05-10 15:42:22,290 - contextual_analyzer - DEBUG - o3 stream ➜ fordshire
+2025-05-10 15:42:22,290 - contextual_analyzer - DEBUG - o3 stream ➜ ,
+2025-05-10 15:42:22,290 - contextual_analyzer - DEBUG - o3 stream ➜  UK
+2025-05-10 15:42:22,291 - contextual_analyzer - DEBUG - o3 stream ➜ ","
+2025-05-10 15:42:22,291 - contextual_analyzer - DEBUG - o3 stream ➜ confidence
+2025-05-10 15:42:22,291 - contextual_analyzer - DEBUG - o3 stream ➜ ":
+2025-05-10 15:42:22,291 - contextual_analyzer - DEBUG - o3 stream ➜ 32
+2025-05-10 15:42:22,291 - contextual_analyzer - DEBUG - o3 stream ➜ }
+2025-05-10 15:42:22,294 - contextual_analyzer - INFO - Structured data from vision model: {'description': 'A suburban street with semi-detached houses and driveways borders a large green park with footpaths and mature trees.', 'keywords': ['semi-detached houses', 'detached houses', 'driveways with parked cars', 'tree-lined green space', 'footpath across grass', 'junction road markings', 'front and back gardens', 'residential rooftops', 'UK road signage', 'boundary hedges'], 'estimated_location': 'St Albans, Hertfordshire, UK', 'confidence': 32}
+2025-05-10 15:45:58,024 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:45:58,044 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:46:32,013 - contextual_analyzer - INFO - Structured data from vision model: {'description': 'A suburban residential street borders a large green parkland, with rows of semi-detached houses, driveways full of cars, and leafy trees lining the road.', 'keywords': ['suburban street', 'semi-detached houses', 'driveways with cars', 'front gardens', 'UK road markings', 'ahead only arrow', 'parkland', 'footpath', 'mature trees', 'junction'], 'estimated_location': 'St Albans, Hertfordshire, UK', 'confidence': 30}
+2025-05-10 15:54:50,743 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 15:54:50,767 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
+2025-05-10 15:55:24,701 - contextual_analyzer - INFO - Structured data from vision model: {'description': 'A suburban street with semi-detached houses and driveways runs alongside a large grassy parkland area.', 'features': ['semi-detached houses', 'back gardens', 'adjacent green parkland', 'footpath across grass', 'UK road markings', 'T-junction', 'driveways with parked cars', 'mature roadside trees', 'tile-roofed homes'], 'estimated-location': 'Harpenden, Hertfordshire, UK', 'confidence': 60}
