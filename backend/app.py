@@ -8,7 +8,7 @@ This module provides API endpoints to process images and return location estimat
 import os
 import json
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -29,18 +29,21 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+# Create router with tag
+llm_router = APIRouter(prefix="/llm-analysis", tags=["LLM_Analysis"])
+
 # Initialize analyzer
 analyzer = LLMContextualAnalyzer(global_mode=False)
 
-@app.get("/")
+@app.get("/", tags=["Health"])
 async def root():
     """Health check endpoint"""
     return {"status": "ok", "message": "Location Estimation API is running"}
 
-@app.post("/analyze")
-async def analyze_image(file: UploadFile = File(...), global_mode: Optional[bool] = False):
+@llm_router.post("/analyze")
+async def analyze_image(file: UploadFile = File(..., description="Image file to analyze (max 20MB)"), global_mode: Optional[bool] = False):
     """
-    Analyze an uploaded image and return location estimation
+    Analyze an uploaded image and return location estimation using LLM analysis
     
     Args:
         file: The image file to analyze
@@ -57,7 +60,11 @@ async def analyze_image(file: UploadFile = File(...), global_mode: Optional[bool
     temp_file = Path(f"/tmp/{file.filename}")
     try:
         with open(temp_file, "wb") as f:
-            f.write(await file.read())
+            # Read in chunks to handle large files
+            content = await file.read(1024 * 1024)
+            while content:
+                f.write(content)
+                content = await file.read(1024 * 1024)
         
         # Process the image
         result = analyzer.process_image(str(temp_file))
@@ -74,6 +81,17 @@ async def analyze_image(file: UploadFile = File(...), global_mode: Optional[bool
         # Clean up the temporary file
         if temp_file.exists():
             temp_file.unlink()
+
+# Keep the old endpoint for backward compatibility
+@app.post("/analyze", tags=["LLM_Analysis"], deprecated=True)
+async def analyze_image_legacy(file: UploadFile = File(..., description="Image file to analyze (max 20MB)"), global_mode: Optional[bool] = False):
+    """
+    Legacy endpoint - use /llm-analysis/analyze instead
+    """
+    return await analyze_image(file, global_mode)
+
+# Include the router
+app.include_router(llm_router)
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True) 
