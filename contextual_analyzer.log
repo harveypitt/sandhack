@@ -183,3 +183,99 @@ So: “Suburban street bordering Harpenden Common, Hertfordshire” is my best e
 2025-05-10 15:54:50,743 - contextual_analyzer - INFO - LLM Contextual Analyzer initialized
 2025-05-10 15:54:50,767 - contextual_analyzer - INFO - Sending image analysis request for: rickmansworth_example.jpg
 2025-05-10 15:55:24,701 - contextual_analyzer - INFO - Structured data from vision model: {'description': 'A suburban street with semi-detached houses and driveways runs alongside a large grassy parkland area.', 'features': ['semi-detached houses', 'back gardens', 'adjacent green parkland', 'footpath across grass', 'UK road markings', 'T-junction', 'driveways with parked cars', 'mature roadside trees', 'tile-roofed homes'], 'estimated-location': 'Harpenden, Hertfordshire, UK', 'confidence': 60}
+2025-05-10 16:20:52,971 - __main__ - INFO - Found 7 images to process
+2025-05-10 16:20:52,972 - src.components.llm_analysis.contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 16:20:52,972 - __main__ - INFO - [1/7] Processing Reading_1_cleaned.jpg
+2025-05-10 16:20:52,972 - __main__ - INFO - Expected location: Reading
+2025-05-10 16:20:52,985 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Reading_1_cleaned.jpg
+2025-05-10 16:21:52,360 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'A canal-side street of Victorian terraces with small gardens, adjacent to an industrial warehouse and residential courtyard parking.', 'features': ['canal waterfront', 'Victorian terraced houses', 'small rear gardens', 'UK road markings', 'double yellow lines at junction', 'industrial warehouse with metal roof', 'parked cars along kerb', 'courtyard parking area', 'red-brick chimneys', 'vans in commercial yard'], 'estimated-location': 'Berkhamsted, Hertfordshire, UK', 'confidence': 25}
+2025-05-10 16:21:52,363 - __main__ - INFO - Estimated location: Berkhamsted, Hertfordshire, UK (confidence: 25)
+2025-05-10 16:21:52,363 - __main__ - INFO - Location match: False
+2025-05-10 16:21:52,363 - __main__ - INFO - Processing time: 59.4 seconds
+2025-05-10 16:21:52,363 - __main__ - INFO - --------------------------------------------------
+2025-05-10 16:21:52,363 - __main__ - INFO - [2/7] Processing Reading_2_cleaned.jpg
+2025-05-10 16:21:52,363 - __main__ - INFO - Expected location: Reading
+2025-05-10 16:21:52,384 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Reading_2_cleaned.jpg
+2025-05-10 16:22:38,429 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'A cluster of red-brick terraced housing sits alongside a busy dual carriageway, with a small pub and parking courts visible.', 'features': ['dual carriageway with bus lane markings', 'Victorian-style terraced houses', 'pub with outdoor seating and umbrellas', 'small residential car parks', 'back gardens and allotment plots', 'communal grass area', 'UK yellow road lines and markings', 'tree-lined pavements'], 'estimated-location': 'Nottingham, Nottinghamshire, UK', 'confidence': 30}
+2025-05-10 16:22:38,431 - __main__ - INFO - Estimated location: Nottingham, Nottinghamshire, UK (confidence: 30)
+2025-05-10 16:22:38,431 - __main__ - INFO - Location match: False
+2025-05-10 16:22:38,431 - __main__ - INFO - Processing time: 46.1 seconds
+2025-05-10 16:22:38,431 - __main__ - INFO - --------------------------------------------------
+2025-05-10 16:22:38,431 - __main__ - INFO - [3/7] Processing Reading_3_cleaned.jpg
+2025-05-10 16:22:38,431 - __main__ - INFO - Expected location: Reading
+2025-05-10 16:22:38,472 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Reading_3_cleaned.jpg
+2025-05-10 16:23:40,851 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'A small town scene with a stone church, adjacent graveyard, residential terraces and a central tree-lined green beside a gravel car park.', 'features': ['stone parish church', 'graveyard', 'Victorian terraced houses', 'gravel car park', 'tree-lined green strip', 'UK road markings', 'pitched tiled roofs', 'on-street parked cars'], 'estimated-location': 'Henley-on-Thames, Oxfordshire, UK', 'confidence': 20}
+2025-05-10 16:23:40,854 - __main__ - INFO - Estimated location: Henley-on-Thames, Oxfordshire, UK (confidence: 20)
+2025-05-10 16:23:40,854 - __main__ - INFO - Location match: False
+2025-05-10 16:23:40,854 - __main__ - INFO - Processing time: 62.4 seconds
+2025-05-10 16:23:40,854 - __main__ - INFO - --------------------------------------------------
+2025-05-10 16:23:40,854 - __main__ - INFO - [4/7] Processing Reading_4_cleaned.jpg
+2025-05-10 16:23:40,854 - __main__ - INFO - Expected location: Reading
+2025-05-10 16:23:40,884 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Reading_4_cleaned.jpg
+2025-05-10 16:24:19,408 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'Aerial view of terraced residential streets surrounding a small inner-block cemetery and car park.', 'features': ['Victorian terraced houses', 'small back gardens', 'inner-block cemetery with headstones', 'on-street parked cars', 'UK road markings and yellow lines', 'small car park with disabled bay', 'light industrial warehouse building', 'narrow residential streets', 'scattered mature trees'], 'estimated-location': 'Reading, Berkshire, UK', 'confidence': 22}
+2025-05-10 16:24:19,410 - __main__ - INFO - Estimated location: Reading, Berkshire, UK (confidence: 22)
+2025-05-10 16:24:19,410 - __main__ - INFO - Location match: True
+2025-05-10 16:24:19,410 - __main__ - INFO - Processing time: 38.6 seconds
+2025-05-10 16:24:19,410 - __main__ - INFO - --------------------------------------------------
+2025-05-10 16:24:19,410 - __main__ - INFO - [5/7] Processing Reading_5_cleaned.jpg
+2025-05-10 16:24:19,410 - __main__ - INFO - Expected location: Reading
+2025-05-10 16:24:19,443 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Reading_5_cleaned.jpg
+2025-05-10 16:25:30,829 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'Residential cul-de-sac with brick flats, parking areas and a modern solar-panelled building beside a tree-lined street.', 'features': ['brick apartment blocks', 'modern building with extensive solar panels', 'cul-de-sac layout', 'car parking bays', 'double yellow lines', 'UK road markings', 'mature deciduous trees', 'pitched tile roofs', 'small landscaped courtyards'], 'estimated-location': 'Cambridge, Cambridgeshire, UK', 'confidence': 18}
+2025-05-10 16:25:30,831 - __main__ - INFO - Estimated location: Cambridge, Cambridgeshire, UK (confidence: 18)
+2025-05-10 16:25:30,831 - __main__ - INFO - Location match: False
+2025-05-10 16:25:30,831 - __main__ - INFO - Processing time: 71.4 seconds
+2025-05-10 16:25:30,831 - __main__ - INFO - --------------------------------------------------
+2025-05-10 16:25:30,831 - __main__ - INFO - [6/7] Processing Rickmansworth_2_cleaned.jpg
+2025-05-10 16:25:30,831 - __main__ - INFO - Expected location: Rickmansworth
+2025-05-10 16:25:30,863 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Rickmansworth_2_cleaned.jpg
+2025-05-10 16:26:37,582 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'A civic complex with council buildings, a rotunda-fronted library, car parks, gardens and a bowling green beside a mini roundabout.', 'features': ['council office complex', 'rotunda-fronted public library', 'mini roundabout with UK road markings', 'bowling green', 'formal ornamental garden with star-shaped paths', 'solar panels on roof', 'marked car parks', 'police vehicles parking bays', 'mature trees and hedges'], 'estimated-location': 'Rickmansworth, Hertfordshire, UK', 'confidence': 87}
+2025-05-10 16:26:37,583 - __main__ - INFO - Estimated location: Rickmansworth, Hertfordshire, UK (confidence: 87)
+2025-05-10 16:26:37,583 - __main__ - INFO - Location match: True
+2025-05-10 16:26:37,583 - __main__ - INFO - Processing time: 66.8 seconds
+2025-05-10 16:26:37,583 - __main__ - INFO - --------------------------------------------------
+2025-05-10 16:26:37,584 - __main__ - INFO - [7/7] Processing Rickmansworth_3_cleaned.jpg
+2025-05-10 16:26:37,584 - __main__ - INFO - Expected location: Rickmansworth
+2025-05-10 16:26:37,614 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Rickmansworth_3_cleaned.jpg
+2025-05-10 16:27:21,096 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'Tree-lined suburban streets with large detached houses and gardens meet at a three-way junction.', 'features': ['detached houses with pitched roofs', 'three-way junction with "STOP" road marking', 'driveways with parked cars', 'solar panels on rooftops', 'large private gardens', 'mature deciduous trees', 'UK style road markings and signage', 'brick and gravel driveways'], 'estimated-location': 'Gerrards Cross, Buckinghamshire, UK', 'confidence': 30}
+2025-05-10 16:27:21,098 - __main__ - INFO - Estimated location: Gerrards Cross, Buckinghamshire, UK (confidence: 30)
+2025-05-10 16:27:21,098 - __main__ - INFO - Location match: False
+2025-05-10 16:27:21,098 - __main__ - INFO - Processing time: 43.5 seconds
+2025-05-10 16:27:21,098 - __main__ - INFO - --------------------------------------------------
+2025-05-10 16:27:21,100 - __main__ - INFO - 
+Batch Test Results:
+2025-05-10 16:27:21,100 - __main__ - INFO - Total images: 7
+2025-05-10 16:27:21,101 - __main__ - INFO - Successful analyses: 7
+2025-05-10 16:27:21,101 - __main__ - INFO - Location matches: 2
+2025-05-10 16:27:21,101 - __main__ - INFO - Location mismatches: 5
+2025-05-10 16:27:21,101 - __main__ - INFO - Analysis failures: 0
+2025-05-10 16:27:21,101 - __main__ - INFO - Match rate: 28.6%
+2025-05-10 16:27:21,105 - __main__ - INFO - 
+Detailed Results:
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+| Filename                    | Expected      | Estimated                           |   Confidence | Time   | Match   |
++=============================+===============+=====================================+==============+========+=========+
+| Reading_1_cleaned.jpg       | Reading       | Berkhamsted, Hertfordshire, UK      |           25 | 59.4s  | ✗       |
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+| Reading_2_cleaned.jpg       | Reading       | Nottingham, Nottinghamshire, UK     |           30 | 46.1s  | ✗       |
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+| Reading_3_cleaned.jpg       | Reading       | Henley-on-Thames, Oxfordshire, UK   |           20 | 62.4s  | ✗       |
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+| Reading_4_cleaned.jpg       | Reading       | Reading, Berkshire, UK              |           22 | 38.6s  | ✓       |
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+| Reading_5_cleaned.jpg       | Reading       | Cambridge, Cambridgeshire, UK       |           18 | 71.4s  | ✗       |
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+| Rickmansworth_2_cleaned.jpg | Rickmansworth | Rickmansworth, Hertfordshire, UK    |           87 | 66.8s  | ✓       |
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+| Rickmansworth_3_cleaned.jpg | Rickmansworth | Gerrards Cross, Buckinghamshire, UK |           30 | 43.5s  | ✗       |
++-----------------------------+---------------+-------------------------------------+--------------+--------+---------+
+2025-05-10 16:27:21,105 - __main__ - INFO - 
+Detailed results saved to batch_results.json
+2025-05-10 16:39:27,783 - src.components.llm_analysis.contextual_analyzer - INFO - LLM Contextual Analyzer initialized
+2025-05-10 16:39:27,794 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Sharharistan.jpg
+2025-05-10 16:39:58,604 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'Rugged upland slopes with sparse moorland vegetation overlooking a patchwork of irrigated fields and a few isolated farm compounds in a narrow valley.', 'features': ['steep rocky hillside', 'patchwork green fields', 'tree-lined stream', 'isolated farm compounds', 'dirt farm tracks', 'terraced valley floor', 'dry moorland terrain'], 'estimated-location': 'Upper Teesdale, County Durham, UK', 'confidence': 15}
+2025-05-10 16:44:38,401 - src.components.llm_analysis.contextual_analyzer - INFO - LLM Contextual Analyzer initialized in global mode
+2025-05-10 16:44:38,412 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Sharharistan.jpg
+2025-05-10 16:45:21,410 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'Arid mountain slopes with scattered mud-brick compounds overlook narrow irrigated terraces of green cropland in a small valley.', 'features': ['rocky barren hillsides', 'narrow irrigated valley floor', 'patchwork terraced fields', 'tree-lined watercourse', 'mud-brick farm compounds', 'dirt footpaths and tracks', 'sparse vegetation on slopes'], 'estimated-location': 'Central Afghanistan', 'confidence': 60}
+2025-05-10 16:51:38,071 - src.components.llm_analysis.contextual_analyzer - INFO - LLM Contextual Analyzer initialized in global mode
+2025-05-10 16:51:38,083 - src.components.llm_analysis.contextual_analyzer - INFO - Sending image analysis request for: Shahristan.jpg
+2025-05-10 16:52:09,884 - src.components.llm_analysis.contextual_analyzer - INFO - Structured data from vision model: {'description': 'Small walled farmsteads and irrigated fields occupy a narrow valley between barren rocky hills.', 'features': ['arid rocky hillsides', 'narrow vegetated stream corridor', 'patchwork irrigated fields', 'rectangular mud-brick compounds', 'dirt footpaths', 'sparse tree lines', 'light terracing', 'dry surrounding plateau'], 'estimated-location': 'Miramor Valley, Daykundi Province, Afghanistan', 'confidence': 55}

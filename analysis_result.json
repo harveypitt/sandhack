@@ -1,0 +1,33 @@
+{
+  "description": "Small walled farmsteads and irrigated fields occupy a narrow valley between barren rocky hills.",
+  "features": [
+    "arid rocky hillsides",
+    "narrow vegetated stream corridor",
+    "patchwork irrigated fields",
+    "rectangular mud-brick compounds",
+    "dirt footpaths",
+    "sparse tree lines",
+    "light terracing",
+    "dry surrounding plateau"
+  ],
+  "estimated-location": "Miramor Valley, Daykundi Province, Afghanistan",
+  "confidence": 55,
+  "image_id": "Shahristan",
+  "usage": {
+    "vision": {
+      "prompt_tokens": 1428,
+      "completion_tokens": 555,
+      "total_tokens": 1983,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 448,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    }
+  }
+}
