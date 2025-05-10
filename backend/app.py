@@ -40,6 +40,12 @@ async def root():
     """Health check endpoint"""
     return {"status": "ok", "message": "Location Estimation API is running"}
 
+# Debug endpoint to check the router
+@app.get("/llm-analysis", tags=["Debug"])
+async def debug_llm_route():
+    """Debug endpoint to check llm-analysis route"""
+    return {"status": "ok", "message": "LLM Analysis router is available"}
+
 @llm_router.post("/analyze")
 async def analyze_image(file: UploadFile = File(..., description="Image file to analyze (max 20MB)"), global_mode: Optional[bool] = False):
     """
@@ -90,7 +96,7 @@ async def analyze_image_legacy(file: UploadFile = File(..., description="Image f
     """
     return await analyze_image(file, global_mode)
 
-# Include the router
+# Include the router - make sure this is called!
 app.include_router(llm_router)
 
 if __name__ == "__main__":
