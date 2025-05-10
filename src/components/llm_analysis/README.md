@@ -1,6 +1,6 @@
 # LLM Contextual Analysis Agent
 
-This component uses OpenAI's o3 vision model to analyze drone images and generate structured descriptions of scenes, focusing on landmarks and features that can aid in relocalization.
+This component uses OpenAI's GPT-4o vision model to analyze drone images and GPT-3.5 Turbo to generate structured descriptions of scenes, focusing on landmarks and features that can aid in relocalization.
 
 ## Setup
 
@@ -50,6 +50,14 @@ python test_analyzer.py
 - `requirements.txt`: Required Python packages
 - `README.md`: This documentation file
 
+## Model Usage
+
+The component uses two different OpenAI models for efficiency:
+- **GPT-4o** (`gpt-4o`): For vision/image analysis
+- **GPT-3.5 Turbo** (`gpt-3.5-turbo`): For structuring the text output into JSON
+
+This approach provides high quality image analysis while keeping costs lower for the text processing phase.
+
 ## Expected Output
 
 The component returns a JSON object with:
@@ -70,6 +78,7 @@ Example:
 
 - The component includes robust error handling for API failures, timeout issues, and parsing errors.
 - All errors are logged for debugging purposes.
+- The test script includes connectivity checks to help diagnose network issues.
 
 ## Next Steps
 
