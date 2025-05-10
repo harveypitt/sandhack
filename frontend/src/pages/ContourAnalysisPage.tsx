@@ -29,7 +29,6 @@ import {
   TabPanels,
   Tab,
   TabPanel,
-  Container,
 } from '@chakra-ui/react';
 import { extractContours, matchContours } from '../api/contourApi';
 
@@ -188,13 +187,8 @@ const ContourAnalysisPage: React.FC = () => {
   };
   
   return (
-    <Container maxW="container.xl" py={8}>
-      <VStack spacing={6} width="100%" align="center">
-        <Heading size="lg">Location Estimation App</Heading>
-        <Text textAlign="center">
-          Upload an image to estimate its location using computer vision and LLM analysis
-        </Text>
-        
+    <Box width="100%" display="flex" flexDirection="column" alignItems="center">
+      <VStack spacing={6} width="100%" maxW="800px" align="center">
         <Heading size="md" mb={2} mt={6}>Contour Analysis</Heading>
         <Text mb={4} textAlign="center">
           Upload a drone/UAV image and up to 4 satellite images to extract and match contours for location estimation
@@ -596,7 +590,7 @@ const ContourAnalysisPage: React.FC = () => {
           </Text>
         </Box>
       </VStack>
-    </Container>
+    </Box>
   );
 };
 

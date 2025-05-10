@@ -25,33 +25,35 @@ function App() {
   return (
     <ChakraProvider theme={theme}>
       <Router>
-        <Box minH="100vh" bg="white">
-          <Container maxW="container.xl" py={8}>
-            <Box textAlign="center" mb={8}>
-              <Heading as="h1" size="xl" mb={2}>
-                Location Estimation App
-              </Heading>
-              <Text fontSize="lg" color="gray.600" mb={6}>
-                Upload an image to estimate its location using computer vision and LLM analysis
-              </Text>
-              <Flex mt={4} justify="center" gap={2}>
-                <Button as={RouterLink} to="/" colorScheme="teal" variant="outline">
-                  Home
-                </Button>
-                <Button as={RouterLink} to="/llm-analysis" colorScheme="blue" variant="outline">
-                  LLM Analysis
-                </Button>
-                <Button as={RouterLink} to="/contour-analysis" colorScheme="purple" variant="outline">
-                  Contour Analysis
-                </Button>
-              </Flex>
+        <Box minH="100vh" bg="white" display="flex" justifyContent="center">
+          <Container maxW="container.lg" py={8} centerContent>
+            <Box width="100%" maxW="800px" mx="auto">
+              <Box textAlign="center" mb={8}>
+                <Heading as="h1" size="xl" mb={2}>
+                  Location Estimation App
+                </Heading>
+                <Text fontSize="lg" color="gray.600" mb={6}>
+                  Upload an image to estimate its location using computer vision and LLM analysis
+                </Text>
+                <Flex mt={4} justify="center" gap={2}>
+                  <Button as={RouterLink} to="/" colorScheme="teal" variant="outline">
+                    Home
+                  </Button>
+                  <Button as={RouterLink} to="/llm-analysis" colorScheme="blue" variant="outline">
+                    LLM Analysis
+                  </Button>
+                  <Button as={RouterLink} to="/contour-analysis" colorScheme="purple" variant="outline">
+                    Contour Analysis
+                  </Button>
+                </Flex>
+              </Box>
+              
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/llm-analysis" element={<LLMAnalysisPage />} />
+                <Route path="/contour-analysis" element={<ContourAnalysisPage />} />
+              </Routes>
             </Box>
-            
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/llm-analysis" element={<LLMAnalysisPage />} />
-              <Route path="/contour-analysis" element={<ContourAnalysisPage />} />
-            </Routes>
           </Container>
         </Box>
       </Router>
