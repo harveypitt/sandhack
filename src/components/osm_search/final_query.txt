@@ -1,32 +1,22 @@
 [out:json][timeout:60];
 
-/* Polygon of the area of interest (replace with actual coordinates) */
-{{geocodeArea:51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927}}->.searchArea;
+/* 1) Residential and minor roads */
+way["highway"~"^(residential|unclassified)$"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.set1;
 
-/* 1) Residential & minor roads flanking the houses */
-way["highway"~"^(residential|unclassified)$"](area.searchArea)->.roads;
+/* 2) Footways and paths crossing the green space */
+way["highway"~"^(footway|path)$"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.set2;
 
-/* 2) Footways/tracks crossing the green park */
-way["highway"~"^(footway|path)$"](area.searchArea)->.footways;
+/* 3) Park / green recreational area */
+way["leisure"="park"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.parks;
 
-/* 3) Park / recreational green space */
-way["leisure"="park"](area.searchArea)->.parks;
+/* 4) Residential buildings (houses) */
+way["building"~"^(house|residential)$"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.houses;
 
-/* 4) Residential buildings along the streets */
-way["building"~"^(house|residential)$"](area.searchArea)->.buildings;
+/* 5) Prominent individual trees */
+node["natural"="tree"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.trees;
 
-/* 5) Natural tree rows or wooded strip buffering the road & park */
-way["natural"~"^(wood|tree_row)$"](area.searchArea)->.trees;
+/* 6) Intersection: nodes common to roads and footways (≤10) */
+node(w.set1)(w.set2)->.intersection;
 
-/* Return full geometry for all collected feature sets */
-(.roads;
- .footways;
- .parks;
- .buildings;
- .trees;
-);
-out body geom;
-
-/* 6) intersection – nodes shared by roads & footways (likely path-road junctions); limit to 10 */
-node(w.roads)(w.footways)->.intersections;
-.intersections out ids geom 10;
+/* Return only the key intersection nodes */
+.intersection out body geom 10;

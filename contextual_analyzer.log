@@ -56,3 +56,11 @@
 2025-05-10 23:12:55,322 - __main__ - INFO - Sending direct Overpass QL generation request for: rickmansworth_example.jpg
 2025-05-10 23:13:42,772 - __main__ - INFO - Direct Overpass QL query generated successfully
 2025-05-10 23:13:42,774 - __main__ - INFO - Overpass QL query written to /Users/harveypitt/Documents/Alive Industries/Repos/sandhack/src/components/llm_analysis/../osm_search/osm_search.json
+2025-05-10 23:19:30,105 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 23:19:30,129 - __main__ - INFO - Sending direct Overpass QL generation request for: rickmansworth_example.jpg
+2025-05-10 23:20:20,461 - __main__ - INFO - Direct Overpass QL query generated successfully
+2025-05-10 23:20:20,465 - __main__ - INFO - Overpass QL query written to /Users/harveypitt/Documents/Alive Industries/Repos/sandhack/src/components/llm_analysis/../osm_search/osm_search.json
+2025-05-10 23:22:12,522 - __main__ - INFO - LLM Contextual Analyzer initialized in UK-specific mode
+2025-05-10 23:22:12,552 - __main__ - INFO - Sending direct Overpass QL generation request for: rickmansworth_example.jpg
+2025-05-10 23:22:51,979 - __main__ - INFO - Direct Overpass QL query generated successfully
+2025-05-10 23:22:51,981 - __main__ - INFO - Overpass QL query written to /Users/harveypitt/Documents/Alive Industries/Repos/sandhack/src/components/llm_analysis/../osm_search/osm_search.json
