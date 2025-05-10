@@ -186,6 +186,125 @@ def process_search_area(file_path=SEARCH_AREA_PATH):
     
     return create_poly_string(coordinates)
 
+def convert_to_geojson(overpy_result):
+    """
+    Convert Overpy result to GeoJSON format.
+    
+    Args:
+        overpy_result: Result from Overpy query
+        
+    Returns:
+        GeoJSON FeatureCollection as a dictionary
+    """
+    features = []
+    
+    # Process nodes
+    for node in overpy_result.nodes:
+        feature = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [float(node.lon), float(node.lat)]
+            },
+            "properties": {
+                "id": node.id,
+                "type": "node"
+            }
+        }
+        
+        # Add tags as properties
+        for key, value in node.tags.items():
+            feature["properties"][key] = value
+            
+        features.append(feature)
+    
+    # Process ways - can be linestrings or polygons
+    for way in overpy_result.ways:
+        # Extract coordinates from nodes in the way
+        coords = [[float(node.lon), float(node.lat)] for node in way.nodes]
+        
+        # Determine if it's a polygon (closed way) or linestring
+        geometry_type = "Polygon" if len(coords) > 2 and coords[0] == coords[-1] else "LineString"
+        
+        # For polygons, coordinates need to be in an extra array level
+        geometry = {
+            "type": geometry_type,
+            "coordinates": [coords] if geometry_type == "Polygon" else coords
+        }
+        
+        feature = {
+            "type": "Feature",
+            "geometry": geometry,
+            "properties": {
+                "id": way.id,
+                "type": "way"
+            }
+        }
+        
+        # Add tags as properties
+        for key, value in way.tags.items():
+            feature["properties"][key] = value
+            
+        features.append(feature)
+    
+    # Process relations - more complex, but basic support
+    for relation in overpy_result.relations:
+        properties = {
+            "id": relation.id,
+            "type": "relation"
+        }
+        
+        # Add tags as properties
+        for key, value in relation.tags.items():
+            properties[key] = value
+        
+        # For now, just add the relation as a property collection without geometry
+        # Full relation geometry processing is complex and would need each member
+        # to be processed based on its role and type
+        feature = {
+            "type": "Feature",
+            "geometry": None,
+            "properties": properties
+        }
+        
+        features.append(feature)
+    
+    # Create the GeoJSON FeatureCollection
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+    
+    return geojson
+
+def execute_query(query):
+    """
+    Execute an Overpass QL query and return both the raw result and GeoJSON.
+    
+    Args:
+        query: Overpass QL query string
+        
+    Returns:
+        Tuple of (overpy_result, geojson_dict) or (None, None) if failed
+    """
+    try:
+        print("Executing Overpass query...")
+        api = overpy.Overpass()
+        result = api.query(query)
+        print(f"Query executed successfully! Found {len(result.nodes)} nodes, {len(result.ways)} ways, and {len(result.relations)} relations.")
+        
+        # Convert to GeoJSON
+        geojson_data = convert_to_geojson(result)
+        print(f"Converted to GeoJSON with {len(geojson_data['features'])} features.")
+        
+        return result, geojson_data
+        
+    except Exception as e:
+        logger.warning(f"Could not execute query: {e}")
+        print("The query could not be executed automatically.")
+        print("You can copy the query and execute it manually at https://overpass-turbo.eu/")
+        return None, None
+
 def main():
     """Main function to run when script is executed directly."""
     # Step 1: Generate the polygon string
@@ -221,17 +340,17 @@ def main():
         f.write(final_query)
     print(f"Saved final query to {OUTPUT_QUERY_PATH}")
     
-    # Step 5 (Optional): Try to execute the query using Overpy
-    try:
-        print("Attempting to execute the query using Overpy...")
-        api = overpy.Overpass()
-        result = api.query(final_query)
-        print(f"Query executed successfully! Found {len(result.nodes)} nodes, {len(result.ways)} ways, and {len(result.relations)} relations.")
+    # Step 5: Execute the query and convert to GeoJSON
+    result, geojson_data = execute_query(final_query)
+    if result and geojson_data:
+        # Save the GeoJSON data
+        geojson_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "query_result.geojson")
+        with open(geojson_path, 'w') as f:
+            json.dump(geojson_data, f, indent=2)
+        print(f"Saved GeoJSON results to {geojson_path}")
         return True
-    except Exception as e:
-        logger.warning(f"Could not execute query: {e}")
-        print("The query was generated but could not be executed automatically.")
-        print("You can copy the query from the output file and execute it manually at https://overpass-turbo.eu/")
+    else:
+        print("Could not generate GeoJSON results.")
         return False
 
 if __name__ == "__main__":
