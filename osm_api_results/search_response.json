@@ -1,0 +1,154 @@
+{
+  "query": "[out:json][timeout:60];\n\n/* 1) Residential roads */\nway[\"highway\"=\"residential\"](poly:\"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927\")->.res;\n\n/* 2) Primary connectors (tertiary or secondary roads) */\nway[\"highway\"~\"^(tertiary|secondary)$\"](poly:\"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927\")->.main;\n\n/* 3) Industrial / warehouse buildings */\nway[\"building\"~\"^(warehouse|industrial)$\"](poly:\"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927\")->.industrial;\n\n/* 4) Terraced & general residential buildings */\nway[\"building\"~\"^(terrace|residential)$\"](poly:\"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927\")->.houses;\n\n/* 5) Water features (river or canal) */\nway[\"waterway\"~\"^(river|canal)$\"](poly:\"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927\")->.water;\n\n/* Intersection: junction nodes between residential and main roads */\nnode(w.res)(w.main)->.intersection;\n.intersection out body geom 10;",
+  "geojson": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5245044,
+            51.6527061
+          ]
+        },
+        "properties": {
+          "id": 34087582,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5211548,
+            51.6550519
+          ]
+        },
+        "properties": {
+          "id": 34087610,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5202606,
+            51.6557611
+          ]
+        },
+        "properties": {
+          "id": 34087627,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5218003,
+            51.6545619
+          ]
+        },
+        "properties": {
+          "id": 34087629,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5255656,
+            51.652171
+          ]
+        },
+        "properties": {
+          "id": 34087634,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5275743,
+            51.6513092
+          ]
+        },
+        "properties": {
+          "id": 34087636,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5294197,
+            51.6500814
+          ]
+        },
+        "properties": {
+          "id": 34087639,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.522967,
+            51.6537248
+          ]
+        },
+        "properties": {
+          "id": 34087661,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5290795,
+            51.6504149
+          ]
+        },
+        "properties": {
+          "id": 34087662,
+          "type": "node"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -0.5210568,
+            51.6572163
+          ]
+        },
+        "properties": {
+          "id": 34092277,
+          "type": "node"
+        }
+      }
+    ]
+  },
+  "stats": {
+    "nodes": 10,
+    "ways": 0,
+    "relations": 0,
+    "features": 10
+  }
+}

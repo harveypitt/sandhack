@@ -22,6 +22,8 @@ from src.components.contour_extractor.contour_extractor import ContourExtractor
 from src.components.contour_matcher.contour_matcher import ContourMatcher
 # Import drone image matcher components
 from src.components.drone_image_matcher.drone_image_matcher import DroneImageMatcher
+# Import OSM search component
+from src.components.osm_search.osm_search import OSMSearchProcessor
 
 # Initialize the app
 app = FastAPI(title="Location Estimation API",
@@ -41,11 +43,13 @@ llm_router = APIRouter(prefix="/llm-analysis", tags=["LLM_Analysis"])
 contour_extractor_router = APIRouter(prefix="/contour", tags=["Contour_Extractor"])
 contour_matcher_router = APIRouter(prefix="/contour", tags=["Contour_Matcher"])
 drone_matcher_router = APIRouter(prefix="/drone-matcher", tags=["Drone_Image_Matcher"])
+osm_router = APIRouter(prefix="/osm", tags=["OSM_Search"])
 
 # Initialize components
 analyzer = LLMContextualAnalyzer(global_mode=False)
 contour_extractor = ContourExtractor()
 contour_matcher = ContourMatcher()
+osm_processor = OSMSearchProcessor()
 
 @app.get("/", tags=["Health"])
 async def root():
@@ -369,11 +373,162 @@ async def match_drone_location(
         if 'coords_path' in locals() and os.path.exists(coords_path):
             os.unlink(coords_path)
 
+# OSM Search Endpoints
+@osm_router.post("/generate-query")
+async def generate_osm_query(
+    image: UploadFile = File(..., description="Image file to analyze for OSM query generation (max 20MB)"),
+    poly_string: str = Form("{poly_string}", description="Optional polygon string placeholder (default: {poly_string})")
+):
+    """
+    Generate an Overpass QL query from an image.
+    
+    Args:
+        image: Image file to analyze
+        poly_string: Optional polygon string placeholder to use in the query
+        
+    Returns:
+        JSON response with the generated Overpass QL query
+    """
+    # Check if the file is an image
+    if not image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Save the image file temporarily
+    image_temp_file = Path(f"/tmp/{image.filename}")
+    
+    try:
+        with open(image_temp_file, "wb") as f:
+            content = await image.read(1024 * 1024)
+            while content:
+                f.write(content)
+                content = await image.read(1024 * 1024)
+        
+        # Process the image to generate an Overpass QL query
+        result = analyzer.process_image(
+            str(image_temp_file),
+            direct_overpass=True,
+            poly_string=poly_string
+        )
+        
+        if not result or "overpass_query" not in result:
+            raise HTTPException(status_code=500, detail="Failed to generate OSM query from image")
+        
+        # Return just the query and usage statistics if available
+        response_data = {
+            "query": result["overpass_query"]
+        }
+        
+        if "usage" in result:
+            response_data["usage"] = result["usage"]
+        
+        return JSONResponse(content=response_data)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        # Clean up temporary file
+        if image_temp_file.exists():
+            image_temp_file.unlink()
+
+@osm_router.post("/search")
+async def osm_search(
+    search_area: UploadFile = File(..., description="GeoJSON file containing search area polygon (max 10MB)"),
+    image: Optional[UploadFile] = File(None, description="Optional image file to analyze for OSM query generation (max 20MB)"),
+    query: Optional[str] = Form(None, description="Optional Overpass QL query (if not provided, will be generated from image)"),
+    feature_index: int = Form(0, description="Index of the feature to use from GeoJSON FeatureCollection (default: 0)")
+):
+    """
+    Process a search area with an OSM query, optionally generating the query from an image.
+    
+    Args:
+        search_area: GeoJSON file containing the search area polygon
+        image: Optional image file to analyze for OSM query generation
+        query: Optional Overpass QL query (if not provided, will be generated from image if image is provided)
+        feature_index: Index of the feature to use from GeoJSON FeatureCollection
+        
+    Returns:
+        JSON response with OSM search results as GeoJSON
+    """
+    # Validate inputs
+    if not query and not image:
+        raise HTTPException(status_code=400, detail="Either a query or an image must be provided")
+    
+    # Save the search area file temporarily
+    search_area_temp_file = Path(f"/tmp/{search_area.filename}")
+    image_temp_file = None
+    
+    try:
+        # Save search area file
+        with open(search_area_temp_file, "wb") as f:
+            content = await search_area.read(1024 * 1024)
+            while content:
+                f.write(content)
+                content = await search_area.read(1024 * 1024)
+        
+        # If image is provided and no query, generate the query from the image
+        if image and not query:
+            # Check if the file is an image
+            if not image.content_type.startswith("image/"):
+                raise HTTPException(status_code=400, detail="Image file must be an image")
+            
+            # Save the image file temporarily
+            image_temp_file = Path(f"/tmp/{image.filename}")
+            with open(image_temp_file, "wb") as f:
+                content = await image.read(1024 * 1024)
+                while content:
+                    f.write(content)
+                    content = await image.read(1024 * 1024)
+            
+            # Process the image to get an Overpass QL query
+            analysis_result = analyzer.process_image(str(image_temp_file), direct_overpass=True)
+            
+            if not analysis_result or "overpass_query" not in analysis_result:
+                raise HTTPException(status_code=500, detail="Failed to generate OSM query from image")
+            
+            query = analysis_result["overpass_query"]
+        
+        # Process the query using OSMSearchProcessor
+        final_query, result, geojson_data = osm_processor.process_query(
+            query=query,
+            search_area_file=str(search_area_temp_file),
+            feature_index=feature_index
+        )
+        
+        if not final_query or not result or not geojson_data:
+            raise HTTPException(status_code=500, detail="Failed to process OSM query")
+        
+        # Return the results
+        response_data = {
+            "query": final_query,
+            "geojson": geojson_data,
+            "stats": {
+                "nodes": len(result.nodes),
+                "ways": len(result.ways),
+                "relations": len(result.relations),
+                "features": len(geojson_data["features"])
+            }
+        }
+        
+        return JSONResponse(content=response_data)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    finally:
+        # Clean up temporary files
+        if search_area_temp_file.exists():
+            search_area_temp_file.unlink()
+        
+        if image_temp_file and image_temp_file.exists():
+            image_temp_file.unlink()
+
 # Include the routers
 app.include_router(llm_router)
 app.include_router(contour_extractor_router)
 app.include_router(contour_matcher_router)
 app.include_router(drone_matcher_router)
+app.include_router(osm_router)
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True) 

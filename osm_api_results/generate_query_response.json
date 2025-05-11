@@ -1,0 +1,20 @@
+{
+  "query": "[out:json][timeout:60];\n\n/* 1) Residential roads */\nway[\"highway\"=\"residential\"](poly:\"{poly_string}\")->.res;\n\n/* 2) Primary connectors (tertiary or secondary roads) */\nway[\"highway\"~\"^(tertiary|secondary)$\"](poly:\"{poly_string}\")->.main;\n\n/* 3) Industrial / warehouse buildings */\nway[\"building\"~\"^(warehouse|industrial)$\"](poly:\"{poly_string}\")->.industrial;\n\n/* 4) Terraced & general residential buildings */\nway[\"building\"~\"^(terrace|residential)$\"](poly:\"{poly_string}\")->.houses;\n\n/* 5) Water features (river or canal) */\nway[\"waterway\"~\"^(river|canal)$\"](poly:\"{poly_string}\")->.water;\n\n/* Intersection: junction nodes between residential and main roads */\nnode(w.res)(w.main)->.intersection;\n.intersection out body geom 10;",
+  "usage": {
+    "direct_overpass": {
+      "prompt_tokens": 1456,
+      "completion_tokens": 1441,
+      "total_tokens": 2897,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "audio_tokens": 0
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 1216,
+        "audio_tokens": 0,
+        "accepted_prediction_tokens": 0,
+        "rejected_prediction_tokens": 0
+      }
+    }
+  }
+}

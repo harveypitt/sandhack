@@ -1,0 +1,20 @@
+[out:json][timeout:60];
+
+/* 1) Terraced and other residential buildings */
+way["building"~"^(terrace|residential)$"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.terraces;
+
+/* 2) Major through roads (tertiary/secondary) */
+way["highway"~"^(tertiary|secondary)$"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.set1;
+
+/* 3) Local residential roads */
+way["highway"="residential"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.set2;
+
+/* 4) Waterway (river or canal) */
+way["waterway"~"^(river|canal)$"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.water;
+
+/* 5) Industrial / warehouse buildings */
+way["building"~"^(warehouse|industrial)$"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.warehouses;
+
+/* 6) intersection: nodes common to both major and residential roads (max 10) */
+node.set1.set2;
+out body geom 10;

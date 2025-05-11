@@ -1,0 +1,20 @@
+[out:json][timeout:60];
+
+/* 1) Residential roads */
+way["highway"="residential"](poly:"{poly_string}")->.res;
+
+/* 2) Primary connectors (tertiary or secondary roads) */
+way["highway"~"^(tertiary|secondary)$"](poly:"{poly_string}")->.main;
+
+/* 3) Industrial / warehouse buildings */
+way["building"~"^(warehouse|industrial)$"](poly:"{poly_string}")->.industrial;
+
+/* 4) Terraced & general residential buildings */
+way["building"~"^(terrace|residential)$"](poly:"{poly_string}")->.houses;
+
+/* 5) Water features (river or canal) */
+way["waterway"~"^(river|canal)$"](poly:"{poly_string}")->.water;
+
+/* Intersection: junction nodes between residential and main roads */
+node(w.res)(w.main)->.intersection;
+.intersection out body geom 10;

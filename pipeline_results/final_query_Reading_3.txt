@@ -1,0 +1,20 @@
+[out:json][timeout:60];
+
+/* 1) Church buildings */
+way["building"="church"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.set1;
+
+/* 2) Cemetery or graveyard areas */
+way["landuse"="cemetery"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.set2;
+
+/* 3) Car parking areas */
+way["amenity"="parking"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.set3;
+
+/* 4) Residential roads */
+way["highway"="residential"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.set4;
+
+/* 5) Parks / green leisure areas */
+way["leisure"="park"](poly:"51.47085 -0.996938 51.429247 -0.996938 51.429247 -0.927154 51.47085 -0.927154 51.47085 -0.996938")->.set5;
+
+/* 6) Intersection – nodes belonging to both the church and cemetery */
+node(w.set1)(w.set2)->.intersection;
+.intersection out body geom 10;
