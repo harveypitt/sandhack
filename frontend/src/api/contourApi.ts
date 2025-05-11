@@ -38,6 +38,8 @@ export const extractContours = async (formData: FormData) => {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      // Set timeout to 5 minutes for processing large images
+      timeout: 300000,
     });
     
     return response.data;
@@ -86,8 +88,8 @@ export const matchContours = async (formData: FormData) => {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      // Increased timeout for processing multiple large images (2 minutes)
-      timeout: 120000,
+      // Increased timeout for processing multiple large images (5 minutes)
+      timeout: 300000,
     });
     
     return response.data;

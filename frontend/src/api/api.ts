@@ -11,6 +11,8 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'multipart/form-data',
   },
+  // Set timeout to 5 minutes (300,000 ms) for long-running LLM analysis
+  timeout: 300000,
 });
 
 /**
