@@ -14,6 +14,8 @@ import overpy
 import geojson
 from pathlib import Path
 import argparse
+import requests
+import time
 from typing import Dict, List, Tuple, Union, Optional
 
 # Configure logging
@@ -32,6 +34,10 @@ SEARCH_AREA_PATH = ENV_SEARCH_AREA_PATH if ENV_SEARCH_AREA_PATH else DEFAULT_SEA
 QUERY_TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "osm_search.json")
 OUTPUT_QUERY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "final_query.txt")
 
+# Groq API related constants
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
 
 class OSMSearchProcessor:
     """
@@ -39,17 +45,19 @@ class OSMSearchProcessor:
     Can be used programmatically or via command line.
     """
     
-    def __init__(self, search_area_path=None, query_template_path=None):
+    def __init__(self, search_area_path=None, query_template_path=None, max_retries=3):
         """
         Initialize the OSM Search Processor.
         
         Args:
             search_area_path: Path to the search area GeoJSON file (optional)
             query_template_path: Path to the query template JSON file (optional)
+            max_retries: Maximum number of times to retry with broadened query (default: 3)
         """
         self.search_area_path = search_area_path or SEARCH_AREA_PATH
         self.query_template_path = query_template_path or QUERY_TEMPLATE_PATH
         self.api = overpy.Overpass()
+        self.max_retries = max_retries
         
         # Log which search area path we're using
         if search_area_path:
@@ -349,32 +357,252 @@ class OSMSearchProcessor:
         
         return geojson_result
 
-    def execute_query(self, query):
+    def broaden_query_with_llm(self, original_query, retry_count):
+        """
+        Use Groq API with Llama 3.3 to rewrite and broaden the Overpass QL query.
+        
+        Args:
+            original_query: Original Overpass QL query string
+            retry_count: Current retry attempt number
+            
+        Returns:
+            Broadened query string or None if failed
+        """
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key:
+            logger.error("GROQ_API_KEY environment variable not set")
+            return None
+            
+        logger.info(f"Attempt {retry_count}: Using Groq with Llama 3.3 to broaden query")
+        
+        # Construct the prompt
+        prompt = f"""You are an expert in OpenStreetMap data and Overpass QL queries. 
+        This Overpass QL query returned 0 results:
+        
+        ```
+        {original_query}
+        ```
+        
+        Please rewrite this query to be slightly broader in scope, retaining the same general search area and intent, 
+        but being more inclusive of potentially relevant features. This is attempt {retry_count} of {self.max_retries}, 
+        so {self.max_retries-retry_count} more attempts remain. 
+        
+        For attempt {retry_count}, broaden the query {'moderately' if retry_count == 1 else 'significantly' if retry_count == 2 else 'very significantly'}.
+        
+        Return ONLY the rewritten Overpass QL query with no other text or explanation.
+        """
+        
+        # Try using the native Groq client if available
+        try:
+            import groq
+            logger.info("Using native Groq client")
+            client = groq.Groq(api_key=api_key)
+            
+            completion = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are an expert in OpenStreetMap data and Overpass QL queries."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1024
+            )
+            
+            broadened_query = completion.choices[0].message.content.strip()
+            
+            # Clean up the query in case it has markdown formatting
+            if broadened_query.startswith("```"):
+                broadened_query = broadened_query.strip("```")
+                # Remove any language identifier like "overpass" after the first ```
+                broadened_query = "\n".join(broadened_query.split("\n")[1:]) if "\n" in broadened_query else broadened_query
+                
+            if broadened_query.endswith("```"):
+                broadened_query = broadened_query.strip("```")
+            
+            # Further cleaning
+            broadened_query = broadened_query.replace("```overpass", "").replace("```", "").strip()
+            
+            logger.info(f"Successfully generated broadened query (attempt {retry_count}) with native Groq client")
+            return broadened_query
+            
+        except ImportError:
+            logger.info("Native Groq client not available, falling back to requests")
+            # Fall back to using requests if groq is not installed
+            # Create the API request
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            data = {
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are an expert in OpenStreetMap data and Overpass QL queries."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1024
+            }
+            
+            # Make the API request
+            try:
+                response = requests.post(GROQ_API_URL, headers=headers, json=data)
+                response.raise_for_status()
+                
+                result = response.json()
+                if 'choices' in result and len(result['choices']) > 0:
+                    broadened_query = result['choices'][0]['message']['content'].strip()
+                    
+                    # Clean up the query in case it has markdown formatting
+                    if broadened_query.startswith("```"):
+                        broadened_query = broadened_query.strip("```")
+                        # Remove any language identifier like "overpass" after the first ```
+                        broadened_query = "\n".join(broadened_query.split("\n")[1:]) if "\n" in broadened_query else broadened_query
+                        
+                    if broadened_query.endswith("```"):
+                        broadened_query = broadened_query.strip("```")
+                    
+                    # Further cleaning
+                    broadened_query = broadened_query.replace("```overpass", "").replace("```", "").strip()
+                    
+                    logger.info(f"Successfully generated broadened query (attempt {retry_count})")
+                    return broadened_query
+                else:
+                    logger.error(f"Unexpected response format from Groq API: {result}")
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Error calling Groq API: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"Error with native Groq client: {e}, falling back to requests")
+            
+            # Create the API request
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            data = {
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are an expert in OpenStreetMap data and Overpass QL queries."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1024
+            }
+            
+            # Make the API request
+            try:
+                response = requests.post(GROQ_API_URL, headers=headers, json=data)
+                response.raise_for_status()
+                
+                result = response.json()
+                if 'choices' in result and len(result['choices']) > 0:
+                    broadened_query = result['choices'][0]['message']['content'].strip()
+                    
+                    # Clean up the query in case it has markdown formatting
+                    if broadened_query.startswith("```"):
+                        broadened_query = broadened_query.strip("```")
+                        # Remove any language identifier like "overpass" after the first ```
+                        broadened_query = "\n".join(broadened_query.split("\n")[1:]) if "\n" in broadened_query else broadened_query
+                        
+                    if broadened_query.endswith("```"):
+                        broadened_query = broadened_query.strip("```")
+                    
+                    # Further cleaning
+                    broadened_query = broadened_query.replace("```overpass", "").replace("```", "").strip()
+                    
+                    logger.info(f"Successfully generated broadened query (attempt {retry_count})")
+                    return broadened_query
+                else:
+                    logger.error(f"Unexpected response format from Groq API: {result}")
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Error calling Groq API: {e}")
+                return None
+
+    def execute_query(self, query, retry=True):
         """
         Execute an Overpass QL query and return both the raw result and GeoJSON.
+        Optionally retry with broadened queries if no results are found.
         
         Args:
             query: Overpass QL query string
+            retry: Whether to retry with broadened queries if no results are found
             
         Returns:
-            Tuple of (overpy_result, geojson_dict) or (None, None) if failed
+            Tuple of (overpy_result, geojson_dict, final_query) or (None, None, None) if failed
         """
         try:
             logger.info("Executing Overpass query...")
             result = self.api.query(query)
+            
+            total_features = len(result.nodes) + len(result.ways) + len(result.relations)
             logger.info(f"Query executed successfully! Found {len(result.nodes)} nodes, {len(result.ways)} ways, and {len(result.relations)} relations.")
+            
+            # If no features were found and retry is enabled, try broadening the query
+            if total_features == 0 and retry:
+                logger.warning("No features found. Will attempt to broaden the query.")
+                
+                current_query = query
+                for retry_count in range(1, self.max_retries + 1):
+                    # Try to broaden the query using LLM
+                    broadened_query = self.broaden_query_with_llm(current_query, retry_count)
+                    
+                    if not broadened_query:
+                        logger.error(f"Failed to broaden query on attempt {retry_count}")
+                        continue
+                        
+                    # Save the broadened query for reference
+                    broadened_query_path = os.path.join(
+                        os.path.dirname(os.path.abspath(OUTPUT_QUERY_PATH)), 
+                        f"broadened_query_attempt_{retry_count}.txt"
+                    )
+                    self.save_query_to_file(broadened_query, broadened_query_path)
+                    
+                    # Execute the broadened query
+                    logger.info(f"Executing broadened query (attempt {retry_count})...")
+                    
+                    try:
+                        new_result = self.api.query(broadened_query)
+                        new_total_features = len(new_result.nodes) + len(new_result.ways) + len(new_result.relations)
+                        
+                        logger.info(f"Broadened query executed successfully! Found {len(new_result.nodes)} nodes, "
+                                   f"{len(new_result.ways)} ways, and {len(new_result.relations)} relations.")
+                        
+                        # If we found features, use this result
+                        if new_total_features > 0:
+                            logger.info(f"Broadened query successful on attempt {retry_count}! Found {new_total_features} features.")
+                            result = new_result
+                            query = broadened_query  # Update the query to the successful one
+                            break
+                            
+                        # Update current query for next iteration
+                        current_query = broadened_query
+                        
+                    except Exception as e:
+                        logger.error(f"Error executing broadened query (attempt {retry_count}): {e}")
+                        # Continue to the next retry attempt
+                        
+                    # Small delay between retry attempts
+                    if retry_count < self.max_retries:
+                        time.sleep(1)
             
             # Convert to GeoJSON
             geojson_data = self.convert_to_geojson(result)
+            total_features = len(result.nodes) + len(result.ways) + len(result.relations)
             logger.info(f"Converted to GeoJSON with {len(geojson_data['features'])} features.")
             
-            return result, geojson_data
+            return result, geojson_data, query
             
         except Exception as e:
             logger.error(f"Error executing query: {e}")
             print("The query could not be executed automatically.")
             print("You can copy the query and execute it manually at https://overpass-turbo.eu/")
-            return None, None
+            return None, None, None
     
     def save_query_to_file(self, query, output_path):
         """
@@ -453,7 +681,7 @@ class OSMSearchProcessor:
         return self.create_poly_string(coordinates)
     
     def process_query(self, query=None, query_template=None, poly_string=None, search_area_file=None, 
-                     search_area_geojson=None, feature_index=0):
+                     search_area_geojson=None, feature_index=0, disable_retry=False):
         """
         Process and execute an Overpass QL query.
         
@@ -464,6 +692,7 @@ class OSMSearchProcessor:
             search_area_file: Path to the search area GeoJSON file
             search_area_geojson: GeoJSON search area as a Python dictionary
             feature_index: Index of the feature to use (for GeoJSON FeatureCollection)
+            disable_retry: If True, won't retry with broadened queries if no results are found
             
         Returns:
             Tuple of (final_query, overpy_result, geojson_data) or (None, None, None) if failed
@@ -506,10 +735,10 @@ class OSMSearchProcessor:
             logger.error("Could not generate final query")
             return None, None, None
         
-        # Execute the query
-        result, geojson_data = self.execute_query(final_query)
+        # Execute the query with retry
+        result, geojson_data, used_query = self.execute_query(final_query, retry=not disable_retry)
         
-        return final_query, result, geojson_data
+        return used_query, result, geojson_data
 
 
 def main():
@@ -529,12 +758,17 @@ def main():
                       help="Index of the feature to use from the GeoJSON FeatureCollection (default: 0)")
     parser.add_argument("--direct-query", default=None,
                       help="Path to a file containing a direct Overpass QL query to execute (bypasses template and search area)")
+    parser.add_argument("--max-retries", type=int, default=3,
+                      help="Maximum number of times to retry with broadened query if no results are found (default: 3)")
+    parser.add_argument("--disable-retry", action="store_true",
+                      help="Disable retrying with broadened queries if no results are found")
     args = parser.parse_args()
     
     # Create processor with search area and query template
     processor = OSMSearchProcessor(
         search_area_path=args.search_area,
-        query_template_path=args.query_template
+        query_template_path=args.query_template,
+        max_retries=args.max_retries
     )
     
     # If direct query file is provided, load it and use it
@@ -552,7 +786,8 @@ def main():
     final_query, result, geojson_data = processor.process_query(
         query=direct_query,
         search_area_file=args.search_area,
-        feature_index=args.feature_index
+        feature_index=args.feature_index,
+        disable_retry=args.disable_retry
     )
     
     if not final_query:

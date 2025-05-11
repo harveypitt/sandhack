@@ -15,6 +15,14 @@ from fastapi.responses import JSONResponse
 import uvicorn
 from typing import Optional, List
 import base64
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Ensure GROQ_API_KEY is available
+if not os.environ.get("GROQ_API_KEY"):
+    print("WARNING: GROQ_API_KEY environment variable not set. OSM search retry functionality will be disabled.")
 
 from src.components.llm_analysis.contextual_analyzer import LLMContextualAnalyzer
 # Import contour components
@@ -49,7 +57,8 @@ osm_router = APIRouter(prefix="/osm", tags=["OSM_Search"])
 analyzer = LLMContextualAnalyzer(global_mode=False)
 contour_extractor = ContourExtractor()
 contour_matcher = ContourMatcher()
-osm_processor = OSMSearchProcessor()
+# Initialize OSM processor with retry enabled by default
+osm_processor = OSMSearchProcessor(max_retries=3)
 
 @app.get("/", tags=["Health"])
 async def root():
@@ -436,7 +445,9 @@ async def osm_search(
     search_area: UploadFile = File(..., description="GeoJSON file containing search area polygon (max 10MB)"),
     image: Optional[UploadFile] = File(None, description="Optional image file to analyze for OSM query generation (max 20MB)"),
     query: Optional[str] = Form(None, description="Optional Overpass QL query (if not provided, will be generated from image)"),
-    feature_index: int = Form(0, description="Index of the feature to use from GeoJSON FeatureCollection (default: 0)")
+    feature_index: int = Form(0, description="Index of the feature to use from GeoJSON FeatureCollection (default: 0)"),
+    disable_retry: bool = Form(False, description="Whether to disable automatic query broadening if no results are found (default: False)"),
+    max_retries: int = Form(3, description="Maximum number of times to retry with broadened query if no results are found (default: 3)")
 ):
     """
     Process a search area with an OSM query, optionally generating the query from an image.
@@ -446,6 +457,8 @@ async def osm_search(
         image: Optional image file to analyze for OSM query generation
         query: Optional Overpass QL query (if not provided, will be generated from image if image is provided)
         feature_index: Index of the feature to use from GeoJSON FeatureCollection
+        disable_retry: Whether to disable automatic query broadening if no results are found
+        max_retries: Maximum number of times to retry with broadened query if no results are found
         
     Returns:
         JSON response with OSM search results as GeoJSON
@@ -488,11 +501,15 @@ async def osm_search(
             
             query = analysis_result["overpass_query"]
         
-        # Process the query using OSMSearchProcessor
-        final_query, result, geojson_data = osm_processor.process_query(
+        # Initialize the OSM processor with the specified max_retries
+        custom_osm_processor = OSMSearchProcessor(max_retries=max_retries)
+        
+        # Process the query using OSMSearchProcessor with retry capabilities
+        final_query, result, geojson_data = custom_osm_processor.process_query(
             query=query,
             search_area_file=str(search_area_temp_file),
-            feature_index=feature_index
+            feature_index=feature_index,
+            disable_retry=disable_retry
         )
         
         if not final_query or not result or not geojson_data:
