@@ -16,13 +16,22 @@ import uvicorn
 from typing import Optional, List
 import base64
 from dotenv import load_dotenv
+import time
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Ensure GROQ_API_KEY is available
 if not os.environ.get("GROQ_API_KEY"):
-    print("WARNING: GROQ_API_KEY environment variable not set. OSM search retry functionality will be disabled.")
+    logger.warning("GROQ_API_KEY environment variable not set. OSM search retry functionality will be disabled.")
 
 from src.components.llm_analysis.contextual_analyzer import LLMContextualAnalyzer
 # Import contour components
@@ -32,6 +41,9 @@ from src.components.contour_matcher.contour_matcher import ContourMatcher
 from src.components.drone_image_matcher.drone_image_matcher import DroneImageMatcher
 # Import OSM search component
 from src.components.osm_search.osm_search import OSMSearchProcessor
+
+# Get access to OUTPUT_QUERY_PATH for file saving
+from src.components.osm_search.osm_search import OUTPUT_QUERY_PATH
 
 # Initialize the app
 app = FastAPI(title="Location Estimation API",
@@ -446,8 +458,9 @@ async def osm_search(
     image: Optional[UploadFile] = File(None, description="Optional image file to analyze for OSM query generation (max 20MB)"),
     query: Optional[str] = Form(None, description="Optional Overpass QL query (if not provided, will be generated from image)"),
     feature_index: int = Form(0, description="Index of the feature to use from GeoJSON FeatureCollection (default: 0)"),
-    disable_retry: bool = Form(False, description="Whether to disable automatic query broadening if no results are found (default: False)"),
-    max_retries: int = Form(3, description="Maximum number of times to retry with broadened query if no results are found (default: 3)")
+    disable_retry: bool = Form(False, description="Whether to disable automatic query adjustment if no/too many results are found (default: False)"),
+    max_retries: int = Form(3, description="Maximum number of times to retry with adjusted query if no/too many results are found (default: 3)"),
+    max_features: int = Form(50, description="Maximum number of features to return before triggering query narrowing (default: 50)")
 ):
     """
     Process a search area with an OSM query, optionally generating the query from an image.
@@ -457,8 +470,9 @@ async def osm_search(
         image: Optional image file to analyze for OSM query generation
         query: Optional Overpass QL query (if not provided, will be generated from image if image is provided)
         feature_index: Index of the feature to use from GeoJSON FeatureCollection
-        disable_retry: Whether to disable automatic query broadening if no results are found
-        max_retries: Maximum number of times to retry with broadened query if no results are found
+        disable_retry: Whether to disable automatic query adjustment if no/too many results are found
+        max_retries: Maximum number of times to retry with adjusted query if no/too many results are found
+        max_features: Maximum number of features to return before triggering query narrowing (default: 50)
         
     Returns:
         JSON response with OSM search results as GeoJSON
@@ -466,6 +480,10 @@ async def osm_search(
     # Validate inputs
     if not query and not image:
         raise HTTPException(status_code=400, detail="Either a query or an image must be provided")
+    
+    # Validate max_features
+    if max_features < 1:
+        raise HTTPException(status_code=400, detail="max_features must be at least 1")
     
     # Save the search area file temporarily
     search_area_temp_file = Path(f"/tmp/{search_area.filename}")
@@ -504,13 +522,171 @@ async def osm_search(
         # Initialize the OSM processor with the specified max_retries
         custom_osm_processor = OSMSearchProcessor(max_retries=max_retries)
         
+        # Monkey patch the max features threshold for narrowing queries
+        # This affects the execute_query method's condition for when to narrow a query
+        original_threshold = 50  # Default value in the class
+        
+        # Temporarily modify the execute_query method to use our custom max_features
+        original_execute_query = custom_osm_processor.execute_query
+        
+        def patched_execute_query(query, retry=True):
+            """Patched version of execute_query that uses custom max_features"""
+            try:
+                logger.info("Executing Overpass query...")
+                result = custom_osm_processor.api.query(query)
+                
+                total_features = len(result.nodes) + len(result.ways) + len(result.relations)
+                logger.info(f"Query executed successfully! Found {len(result.nodes)} nodes, {len(result.ways)} ways, and {len(result.relations)} relations.")
+                
+                # If too many features were found and retry is enabled, try narrowing the query
+                if total_features > max_features and retry:
+                    logger.warning(f"Too many features found ({total_features}, max: {max_features}). Will attempt to narrow the query.")
+                    
+                    current_query = query
+                    for retry_count in range(1, custom_osm_processor.max_retries + 1):
+                        # Try to narrow the query using LLM
+                        narrowed_query = custom_osm_processor.narrow_query_with_llm(current_query, retry_count, total_features)
+                        
+                        if not narrowed_query:
+                            logger.error(f"Failed to narrow query on attempt {retry_count}")
+                            continue
+                            
+                        # Save the narrowed query for reference
+                        narrowed_query_path = os.path.join(
+                            os.path.dirname(os.path.abspath(OUTPUT_QUERY_PATH)), 
+                            f"narrowed_query_attempt_{retry_count}.txt"
+                        )
+                        custom_osm_processor.save_query_to_file(narrowed_query, narrowed_query_path)
+                        
+                        # Execute the narrowed query
+                        logger.info(f"Executing narrowed query (attempt {retry_count})...")
+                        
+                        try:
+                            new_result = custom_osm_processor.api.query(narrowed_query)
+                            new_total_features = len(new_result.nodes) + len(new_result.ways) + len(new_result.relations)
+                            
+                            logger.info(f"Narrowed query executed successfully! Found {len(new_result.nodes)} nodes, "
+                                       f"{len(new_result.ways)} ways, and {len(new_result.relations)} relations.")
+                            
+                            # If we found a reasonable number of features, use this result
+                            if 0 < new_total_features <= max_features:
+                                logger.info(f"Narrowed query successful on attempt {retry_count}! Found {new_total_features} features.")
+                                result = new_result
+                                query = narrowed_query  # Update the query to the successful one
+                                break
+                                
+                            # If we still got too many features but fewer than before, update for next iteration
+                            if new_total_features > max_features and new_total_features < total_features:
+                                logger.info(f"Narrowed query on attempt {retry_count} reduced features from {total_features} to {new_total_features}. Will try again.")
+                                result = new_result
+                                total_features = new_total_features
+                                current_query = narrowed_query
+                            else:
+                                logger.info(f"Narrowed query on attempt {retry_count} did not improve results. Keeping previous query.")
+                            
+                        except Exception as e:
+                            logger.error(f"Error executing narrowed query (attempt {retry_count}): {e}")
+                            # Continue to the next retry attempt
+                            
+                        # Small delay between retry attempts
+                        if retry_count < custom_osm_processor.max_retries:
+                            time.sleep(1)
+                
+                # Rest of the original execute_query function for broadening...
+                elif total_features == 0 and retry:
+                    logger.warning("No features found. Will attempt to broaden the query.")
+                    
+                    current_query = query
+                    for retry_count in range(1, custom_osm_processor.max_retries + 1):
+                        # Try to broaden the query using LLM
+                        broadened_query = custom_osm_processor.broaden_query_with_llm(current_query, retry_count)
+                        
+                        if not broadened_query:
+                            logger.error(f"Failed to broaden query on attempt {retry_count}")
+                            continue
+                            
+                        # Save the broadened query for reference
+                        broadened_query_path = os.path.join(
+                            os.path.dirname(os.path.abspath(OUTPUT_QUERY_PATH)), 
+                            f"broadened_query_attempt_{retry_count}.txt"
+                        )
+                        custom_osm_processor.save_query_to_file(broadened_query, broadened_query_path)
+                        
+                        # Execute the broadened query
+                        logger.info(f"Executing broadened query (attempt {retry_count})...")
+                        
+                        try:
+                            new_result = custom_osm_processor.api.query(broadened_query)
+                            new_total_features = len(new_result.nodes) + len(new_result.ways) + len(new_result.relations)
+                            
+                            logger.info(f"Broadened query executed successfully! Found {len(new_result.nodes)} nodes, "
+                                       f"{len(new_result.ways)} ways, and {len(new_result.relations)} relations.")
+                            
+                            # If we found features, use this result
+                            if 0 < new_total_features <= max_features:
+                                logger.info(f"Broadened query successful on attempt {retry_count}! Found {new_total_features} features.")
+                                result = new_result
+                                query = broadened_query  # Update the query to the successful one
+                                break
+                            # If we found too many features, try narrowing in the next iteration
+                            elif new_total_features > max_features:
+                                logger.info(f"Broadened query on attempt {retry_count} found too many features ({new_total_features}). Will try to narrow.")
+                                # Try to narrow this query in the next iteration
+                                narrowed_query = custom_osm_processor.narrow_query_with_llm(broadened_query, retry_count, new_total_features)
+                                if narrowed_query:
+                                    logger.info(f"Immediately narrowing broadened query that found too many features.")
+                                    try:
+                                        narrowed_result = custom_osm_processor.api.query(narrowed_query)
+                                        narrowed_features = len(narrowed_result.nodes) + len(narrowed_result.ways) + len(narrowed_result.relations)
+                                        logger.info(f"Narrowed query found {narrowed_features} features.")
+                                        if 0 < narrowed_features <= max_features:
+                                            logger.info(f"Successfully narrowed broadened query to get {narrowed_features} features.")
+                                            result = narrowed_result
+                                            query = narrowed_query
+                                            break
+                                    except Exception as ne:
+                                        logger.error(f"Error executing narrowed query after broadening: {ne}")
+                                # Update current query for next iteration if we couldn't narrow successfully
+                                current_query = broadened_query
+                            # If we still found 0 features, try a different approach in the next iteration
+                            else:
+                                current_query = broadened_query
+                            
+                        except Exception as e:
+                            logger.error(f"Error executing broadened query (attempt {retry_count}): {e}")
+                            # Continue to the next retry attempt
+                            
+                        # Small delay between retry attempts
+                        if retry_count < custom_osm_processor.max_retries:
+                            time.sleep(1)
+                
+                # Convert to GeoJSON
+                geojson_data = custom_osm_processor.convert_to_geojson(result)
+                total_features = len(result.nodes) + len(result.ways) + len(result.relations)
+                logger.info(f"Converted to GeoJSON with {len(geojson_data['features'])} features.")
+                
+                return result, geojson_data, query
+                
+            except Exception as e:
+                logger.error(f"Error executing query: {e}")
+                print("The query could not be executed automatically.")
+                print("You can copy the query and execute it manually at https://overpass-turbo.eu/")
+                return None, None, None
+        
+        # Replace the original execute_query with our patched version
+        custom_osm_processor.execute_query = patched_execute_query
+        
         # Process the query using OSMSearchProcessor with retry capabilities
-        final_query, result, geojson_data = custom_osm_processor.process_query(
-            query=query,
-            search_area_file=str(search_area_temp_file),
-            feature_index=feature_index,
-            disable_retry=disable_retry
-        )
+        try:
+            final_query, result, geojson_data = custom_osm_processor.process_query(
+                query=query,
+                search_area_file=str(search_area_temp_file),
+                feature_index=feature_index,
+                disable_retry=disable_retry
+            )
+        finally:
+            # Restore the original execute_query method to avoid affecting other requests
+            custom_osm_processor.execute_query = original_execute_query
         
         if not final_query or not result or not geojson_data:
             raise HTTPException(status_code=500, detail="Failed to process OSM query")
@@ -530,6 +706,9 @@ async def osm_search(
         return JSONResponse(content=response_data)
     
     except Exception as e:
+        import traceback
+        error_detail = f"Error: {str(e)}\n\nTraceback: {traceback.format_exc()}"
+        logger.error(f"OSM search error: {error_detail}")
         raise HTTPException(status_code=500, detail=str(e))
     
     finally:

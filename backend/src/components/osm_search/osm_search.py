@@ -527,11 +527,11 @@ class OSMSearchProcessor:
     def execute_query(self, query, retry=True):
         """
         Execute an Overpass QL query and return both the raw result and GeoJSON.
-        Optionally retry with broadened queries if no results are found.
+        Optionally retry with broadened or narrowed queries based on results.
         
         Args:
             query: Overpass QL query string
-            retry: Whether to retry with broadened queries if no results are found
+            retry: Whether to retry with adjusted queries if no results are found or too many results
             
         Returns:
             Tuple of (overpy_result, geojson_dict, final_query) or (None, None, None) if failed
@@ -543,8 +543,62 @@ class OSMSearchProcessor:
             total_features = len(result.nodes) + len(result.ways) + len(result.relations)
             logger.info(f"Query executed successfully! Found {len(result.nodes)} nodes, {len(result.ways)} ways, and {len(result.relations)} relations.")
             
+            # If too many features were found and retry is enabled, try narrowing the query
+            if total_features > 50 and retry:
+                logger.warning(f"Too many features found ({total_features}). Will attempt to narrow the query.")
+                
+                current_query = query
+                for retry_count in range(1, self.max_retries + 1):
+                    # Try to narrow the query using LLM
+                    narrowed_query = self.narrow_query_with_llm(current_query, retry_count, total_features)
+                    
+                    if not narrowed_query:
+                        logger.error(f"Failed to narrow query on attempt {retry_count}")
+                        continue
+                        
+                    # Save the narrowed query for reference
+                    narrowed_query_path = os.path.join(
+                        os.path.dirname(os.path.abspath(OUTPUT_QUERY_PATH)), 
+                        f"narrowed_query_attempt_{retry_count}.txt"
+                    )
+                    self.save_query_to_file(narrowed_query, narrowed_query_path)
+                    
+                    # Execute the narrowed query
+                    logger.info(f"Executing narrowed query (attempt {retry_count})...")
+                    
+                    try:
+                        new_result = self.api.query(narrowed_query)
+                        new_total_features = len(new_result.nodes) + len(new_result.ways) + len(new_result.relations)
+                        
+                        logger.info(f"Narrowed query executed successfully! Found {len(new_result.nodes)} nodes, "
+                                   f"{len(new_result.ways)} ways, and {len(new_result.relations)} relations.")
+                        
+                        # If we found a reasonable number of features, use this result
+                        if 0 < new_total_features <= 50:
+                            logger.info(f"Narrowed query successful on attempt {retry_count}! Found {new_total_features} features.")
+                            result = new_result
+                            query = narrowed_query  # Update the query to the successful one
+                            break
+                            
+                        # If we still got too many features but fewer than before, update for next iteration
+                        if new_total_features > 50 and new_total_features < total_features:
+                            logger.info(f"Narrowed query on attempt {retry_count} reduced features from {total_features} to {new_total_features}. Will try again.")
+                            result = new_result
+                            total_features = new_total_features
+                            current_query = narrowed_query
+                        else:
+                            logger.info(f"Narrowed query on attempt {retry_count} did not improve results. Keeping previous query.")
+                        
+                    except Exception as e:
+                        logger.error(f"Error executing narrowed query (attempt {retry_count}): {e}")
+                        # Continue to the next retry attempt
+                        
+                    # Small delay between retry attempts
+                    if retry_count < self.max_retries:
+                        time.sleep(1)
+            
             # If no features were found and retry is enabled, try broadening the query
-            if total_features == 0 and retry:
+            elif total_features == 0 and retry:
                 logger.warning("No features found. Will attempt to broaden the query.")
                 
                 current_query = query
@@ -574,14 +628,34 @@ class OSMSearchProcessor:
                                    f"{len(new_result.ways)} ways, and {len(new_result.relations)} relations.")
                         
                         # If we found features, use this result
-                        if new_total_features > 0:
+                        if 0 < new_total_features <= 50:
                             logger.info(f"Broadened query successful on attempt {retry_count}! Found {new_total_features} features.")
                             result = new_result
                             query = broadened_query  # Update the query to the successful one
                             break
-                            
-                        # Update current query for next iteration
-                        current_query = broadened_query
+                        # If we found too many features, try narrowing in the next iteration
+                        elif new_total_features > 50:
+                            logger.info(f"Broadened query on attempt {retry_count} found too many features ({new_total_features}). Will try to narrow.")
+                            # Try to narrow this query in the next iteration
+                            narrowed_query = self.narrow_query_with_llm(broadened_query, retry_count, new_total_features)
+                            if narrowed_query:
+                                logger.info(f"Immediately narrowing broadened query that found too many features.")
+                                try:
+                                    narrowed_result = self.api.query(narrowed_query)
+                                    narrowed_features = len(narrowed_result.nodes) + len(narrowed_result.ways) + len(narrowed_result.relations)
+                                    logger.info(f"Narrowed query found {narrowed_features} features.")
+                                    if 0 < narrowed_features <= 50:
+                                        logger.info(f"Successfully narrowed broadened query to get {narrowed_features} features.")
+                                        result = narrowed_result
+                                        query = narrowed_query
+                                        break
+                                except Exception as ne:
+                                    logger.error(f"Error executing narrowed query after broadening: {ne}")
+                            # Update current query for next iteration if we couldn't narrow successfully
+                            current_query = broadened_query
+                        # If we still found 0 features, try a different approach in the next iteration
+                        else:
+                            current_query = broadened_query
                         
                     except Exception as e:
                         logger.error(f"Error executing broadened query (attempt {retry_count}): {e}")
@@ -739,6 +813,173 @@ class OSMSearchProcessor:
         result, geojson_data, used_query = self.execute_query(final_query, retry=not disable_retry)
         
         return used_query, result, geojson_data
+
+    def narrow_query_with_llm(self, original_query, retry_count, feature_count):
+        """
+        Use Groq API with Llama 3.3 to rewrite and narrow the Overpass QL query.
+        
+        Args:
+            original_query: Original Overpass QL query string
+            retry_count: Current retry attempt number
+            feature_count: Number of features found with the original query
+            
+        Returns:
+            Narrowed query string or None if failed
+        """
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key:
+            logger.error("GROQ_API_KEY environment variable not set")
+            return None
+            
+        logger.info(f"Attempt {retry_count}: Using Groq with Llama 3.3 to narrow query")
+        
+        # Construct the prompt
+        prompt = f"""You are an expert in OpenStreetMap data and Overpass QL queries. 
+        This Overpass QL query returned too many results ({feature_count} features):
+        
+        ```
+        {original_query}
+        ```
+        
+        Please rewrite this query to be more specific and targeted, reducing the number of features returned while still capturing the essential elements.
+        This is attempt {retry_count} of {self.max_retries}, so {self.max_retries-retry_count} more attempts remain. 
+        
+        For attempt {retry_count}, narrow the query {'moderately' if retry_count == 1 else 'significantly' if retry_count == 2 else 'very significantly'}.
+        
+        Return ONLY the rewritten Overpass QL query with no other text or explanation.
+        """
+        
+        # Try using the native Groq client if available
+        try:
+            import groq
+            logger.info("Using native Groq client")
+            client = groq.Groq(api_key=api_key)
+            
+            completion = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are an expert in OpenStreetMap data and Overpass QL queries."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1024
+            )
+            
+            narrowed_query = completion.choices[0].message.content.strip()
+            
+            # Clean up the query in case it has markdown formatting
+            if narrowed_query.startswith("```"):
+                narrowed_query = narrowed_query.strip("```")
+                # Remove any language identifier like "overpass" after the first ```
+                narrowed_query = "\n".join(narrowed_query.split("\n")[1:]) if "\n" in narrowed_query else narrowed_query
+                
+            if narrowed_query.endswith("```"):
+                narrowed_query = narrowed_query.strip("```")
+            
+            # Further cleaning
+            narrowed_query = narrowed_query.replace("```overpass", "").replace("```", "").strip()
+            
+            logger.info(f"Successfully generated narrowed query (attempt {retry_count}) with native Groq client")
+            return narrowed_query
+            
+        except ImportError:
+            logger.info("Native Groq client not available, falling back to requests")
+            # Fall back to using requests if groq is not installed
+            # Create the API request
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            data = {
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are an expert in OpenStreetMap data and Overpass QL queries."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1024
+            }
+            
+            # Make the API request
+            try:
+                response = requests.post(GROQ_API_URL, headers=headers, json=data)
+                response.raise_for_status()
+                
+                result = response.json()
+                if 'choices' in result and len(result['choices']) > 0:
+                    narrowed_query = result['choices'][0]['message']['content'].strip()
+                    
+                    # Clean up the query in case it has markdown formatting
+                    if narrowed_query.startswith("```"):
+                        narrowed_query = narrowed_query.strip("```")
+                        # Remove any language identifier like "overpass" after the first ```
+                        narrowed_query = "\n".join(narrowed_query.split("\n")[1:]) if "\n" in narrowed_query else narrowed_query
+                        
+                    if narrowed_query.endswith("```"):
+                        narrowed_query = narrowed_query.strip("```")
+                    
+                    # Further cleaning
+                    narrowed_query = narrowed_query.replace("```overpass", "").replace("```", "").strip()
+                    
+                    logger.info(f"Successfully generated narrowed query (attempt {retry_count})")
+                    return narrowed_query
+                else:
+                    logger.error(f"Unexpected response format from Groq API: {result}")
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Error calling Groq API: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"Error with native Groq client: {e}, falling back to requests")
+            
+            # Create the API request
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            data = {
+                "model": GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are an expert in OpenStreetMap data and Overpass QL queries."},
+                    {"role": "user", "content": prompt}
+                ],
+                "temperature": 0.7,
+                "max_tokens": 1024
+            }
+            
+            # Make the API request
+            try:
+                response = requests.post(GROQ_API_URL, headers=headers, json=data)
+                response.raise_for_status()
+                
+                result = response.json()
+                if 'choices' in result and len(result['choices']) > 0:
+                    narrowed_query = result['choices'][0]['message']['content'].strip()
+                    
+                    # Clean up the query in case it has markdown formatting
+                    if narrowed_query.startswith("```"):
+                        narrowed_query = narrowed_query.strip("```")
+                        # Remove any language identifier like "overpass" after the first ```
+                        narrowed_query = "\n".join(narrowed_query.split("\n")[1:]) if "\n" in narrowed_query else narrowed_query
+                        
+                    if narrowed_query.endswith("```"):
+                        narrowed_query = narrowed_query.strip("```")
+                    
+                    # Further cleaning
+                    narrowed_query = narrowed_query.replace("```overpass", "").replace("```", "").strip()
+                    
+                    logger.info(f"Successfully generated narrowed query (attempt {retry_count})")
+                    return narrowed_query
+                else:
+                    logger.error(f"Unexpected response format from Groq API: {result}")
+                    return None
+                    
+            except Exception as e:
+                logger.error(f"Error calling Groq API: {e}")
+                return None
 
 
 def main():

@@ -1,0 +1,13 @@
+[out:json][timeout:60];
+way["highway"="residential"]["name"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.residential;
+way["highway"="service"]["name"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.service;
+way["waterway"~"^(river|canal)$"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.water;
+way["building"~"^(industrial|warehouse)$"]["industrial"="yes"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.industrial;
+way["amenity"="parking"]["fee"="yes"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.parking;
+node(w.residential)(w.service)->.intersection;
+way["highway"="residential"](node.intersection);
+way["highway"="service"](node.intersection);
+way["waterway"~"^(river|canal)$"](node.intersection);
+way["building"~"^(industrial|warehouse)$"](node.intersection);
+way["amenity"="parking"](node.intersection);
+node.intersection out body geom;

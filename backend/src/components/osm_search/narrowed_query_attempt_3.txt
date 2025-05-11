@@ -1,0 +1,5 @@
+[out:json][timeout:60];
+way["highway"="residential"]["name"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.residential;
+way["highway"="service"]["name"](poly:"51.620617 -0.426927 51.68267 -0.426927 51.68267 -0.533566 51.620617 -0.533566 51.620617 -0.426927")->.service;
+node(w.residential)(w.service)->.intersection;
+.intersection out body geom;
