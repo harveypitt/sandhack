@@ -1,21 +1,23 @@
-version: '3.8'
-
 services:
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: location-estimation-backend
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
-      - ./Competition Release:/app/Competition Release
+      - "./Competition Release:/app/Competition_Release"  # Using underscore to avoid space issues
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app
     restart: always
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: location-estimation-frontend
     ports:
       - "80:80"

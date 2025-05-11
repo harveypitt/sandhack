@@ -1,0 +1,52 @@
+[
+  {
+    "lat": 51.6794221,
+    "lon": -0.5319316,
+    "description": "Chorleywood area"
+  },
+  {
+    "lat": 51.6485691,
+    "lon": -0.5238954,
+    "description": "Rickmansworth area"
+  },
+  {
+    "lat": 51.6527061,
+    "lon": -0.5245044,
+    "description": "Rickmansworth park"
+  },
+  {
+    "lat": 51.6505116,
+    "lon": -0.51507,
+    "description": "Rickmansworth town center"
+  },
+  {
+    "lat": 51.6502091,
+    "lon": -0.5120295,
+    "description": "Eastern Rickmansworth"
+  },
+  {
+    "lat": 51.4633051,
+    "lon": -0.9691609,
+    "description": "Reading town center"
+  },
+  {
+    "lat": 51.4538022,
+    "lon": -0.9728517,
+    "description": "Reading University area"
+  },
+  {
+    "lat": 51.4424135,
+    "lon": -0.9448202,
+    "description": "South Reading"
+  },
+  {
+    "lat": 51.4754332,
+    "lon": -0.9576629,
+    "description": "North Reading"
+  },
+  {
+    "lat": 51.4603267,
+    "lon": -0.9105087,
+    "description": "East Reading"
+  }
+] 

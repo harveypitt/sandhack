@@ -1,14 +1,14 @@
-FROM node:18-alpine as build
+FROM node:18-alpine AS build
 
 WORKDIR /app
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install all dependencies including dev dependencies needed for build
+RUN npm ci
 
-# Copy project files
+# Copy project files (excluding node_modules thanks to .dockerignore)
 COPY . .
 
 # Build the app

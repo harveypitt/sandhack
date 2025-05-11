@@ -8,6 +8,7 @@ using shape analysis and holistic pattern recognition techniques.
 
 Classes:
     ContourMatcher: Main class for matching contours and visualizing results
+    HolisticMatcher: Holistic matcher that compares contours by treating them as a collective pattern
 
 Functions:
     match_contours: Match contours between drone and satellite images
@@ -371,7 +372,7 @@ class ContourMatcher:
         
         # For demo purposes, ensure we get reasonable numbers to demonstrate the UI
         # In a real implementation, remove this randomization
-        match_score = min(max(match_score, 15), 95)  # Ensure scores are between 15% and 95%
+        # match_score = min(max(match_score, 15), 95)  # Ensure scores are between 15% and 95%
         
         return match_score
     
@@ -386,7 +387,7 @@ class ContourMatcher:
         - Hu moments: Seven scale, translation, and rotation invariant moments
         
         Args:
-            contour (np.ndarray): Contour
+            contour (list or np.ndarray): Contour, typically a list of points from ContourExtractor or a NumPy array.
             
         Returns:
             dict: Shape descriptors containing:
@@ -395,8 +396,17 @@ class ContourMatcher:
                 - circularity: Circularity measure (0-1)
                 - hu_moments: Seven Hu moments
         """
+        # Ensure contour is a NumPy array of the correct type for OpenCV functions
+        if not isinstance(contour, np.ndarray):
+            # Assuming contour is a list of points e.g., [[x1,y1], [x2,y2], ...]
+            # Convert to NumPy array, shape (N, 2), dtype int32. OpenCV often prefers (N,1,2)
+            # but (N,2) also works for moments, contourArea, arcLength.
+            np_contour = np.array(contour, dtype=np.int32)
+        else:
+            np_contour = contour # It's already a NumPy array
+
         # Calculate moments
-        moments = cv2.moments(contour)
+        moments = cv2.moments(np_contour)
         
         # Prevent division by zero
         if moments['m00'] == 0:
@@ -408,8 +418,8 @@ class ContourMatcher:
             }
         
         # Calculate area and perimeter
-        area = cv2.contourArea(contour)
-        perimeter = cv2.arcLength(contour, True)
+        area = cv2.contourArea(np_contour)
+        perimeter = cv2.arcLength(np_contour, True)
         
         # Calculate circularity
         circularity = (4 * np.pi * area) / (perimeter * perimeter) if perimeter > 0 else 0
@@ -538,4 +548,252 @@ class ContourMatcher:
         metrics = f"IoU: {match_score/100:.3f}, Scale: 1.00, Angle: 0.0°"
         cv2.putText(holistic_vis, metrics, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
         
-        return holistic_vis 
+        return holistic_vis
+
+class HolisticMatcher:
+    """
+    Holistic matcher that compares contours by treating them as a collective pattern.
+    
+    Instead of comparing individual contours separately, this approach creates composite
+    images with all contours and finds the optimal transformation to align them.
+    This is especially useful for matching drone images that may be rotated, scaled, 
+    or slightly offset from their corresponding satellite images.
+    """
+    
+    def __init__(self, logger=None):
+        """Initialize the HolisticMatcher.
+        
+        Args:
+            logger: Optional logger for debugging information
+        """
+        self.logger = logger or logging.getLogger(__name__)
+    
+    def match_contours(self, drone_contours, satellite_contours_list, **kwargs):
+        """
+        Match drone contours against multiple satellite contour sets using holistic matching.
+        
+        Args:
+            drone_contours (list): List of contours from the drone image
+            satellite_contours_list (list): List of lists of contours from satellite images
+            **kwargs: Additional parameters for matching:
+                - min_scale (float): Minimum scale factor to try (default: 0.5)
+                - max_scale (float): Maximum scale factor to try (default: 2.0)
+                - scale_steps (int): Number of scale steps to try (default: 10)
+                - angle_step (float): Step size for rotation angles in degrees (default: 10)
+                - translation_range (int): Range for translation in pixels (default: 50)
+                - translation_step (int): Step size for translation (default: 10)
+                - simplify (bool): If True, disable scale and rotation transformations (default: False)
+                
+        Returns:
+            list: List of (index, score) tuples sorted by score (best match first)
+        """
+        # Set default parameters
+        min_scale = kwargs.get('min_scale', 0.5)
+        max_scale = kwargs.get('max_scale', 2.0)
+        scale_steps = kwargs.get('scale_steps', 10)
+        angle_step = kwargs.get('angle_step', 10.0)
+        translation_range = kwargs.get('translation_range', 50)
+        translation_step = kwargs.get('translation_step', 10)
+        
+        # Get the simplify flag - if True, only translation will be applied (no scale/rotation)
+        simplify = kwargs.get('simplify', False)
+        if simplify:
+            # If simplify is enabled, limit to just the identity transformation for scale/rotation
+            self.logger.info("Simplify mode: Disabled scale and rotation transformations")
+            min_scale = max_scale = 1.0
+            scale_steps = 1
+            angle_step = 360  # Only try 0 degrees
+        
+        # Convert contours to the right format for OpenCV if needed
+        drone_np_contours = [self._ensure_contour_format(c) for c in drone_contours]
+        
+        # Create composite image with all drone contours
+        image_size = (1000, 1000)  # Fixed size for all images
+        drone_composite = self._create_contour_image(drone_np_contours, image_size)
+        
+        match_scores = []
+        
+        # Process each satellite area
+        for i, sat_contours in enumerate(satellite_contours_list):
+            sat_np_contours = [self._ensure_contour_format(c) for c in sat_contours]
+            
+            # Create composite image with all satellite contours
+            satellite_composite = self._create_contour_image(sat_np_contours, image_size)
+            
+            # Find best transformation
+            best_scale, best_angle, best_iou, best_tx, best_ty, _ = self._find_best_transformation(
+                drone_composite, 
+                satellite_composite,
+                min_scale=min_scale,
+                max_scale=max_scale,
+                scale_steps=scale_steps,
+                angle_step=angle_step,
+                translation_range=translation_range,
+                translation_step=translation_step,
+                simplify=simplify
+            )
+            
+            # Convert IoU score (0-1) to percentage (0-100)
+            similarity_score = best_iou * 100
+            
+            match_scores.append((i, similarity_score))
+            
+            self.logger.info(f"Area {i}: match score={similarity_score:.2f}%, "
+                           f"scale={best_scale:.2f}, angle={best_angle:.1f}°"
+                           f"{' (simplify mode)' if simplify else ''}")
+        
+        # Sort by score (highest first)
+        match_scores.sort(key=lambda x: x[1], reverse=True)
+        return match_scores
+    
+    def _ensure_contour_format(self, contour):
+        """Convert contour to the right numpy array format for OpenCV."""
+        np_contour = np.array(contour, dtype=np.float32)
+        if len(np_contour.shape) == 2:
+            np_contour = np_contour.reshape(-1, 1, 2)
+        return np_contour
+    
+    def _create_contour_image(self, contours, image_size=(1000, 1000), thickness=1, center=True):
+        """Create a binary image with all contours drawn."""
+        height, width = image_size
+        img = np.zeros((height, width), dtype=np.uint8)
+        
+        if not contours:
+            return img
+        
+        # Find bounding box for all contours together if centering
+        if center:
+            all_points = np.vstack([c.reshape(-1, 2) for c in contours])
+            min_x, min_y = np.min(all_points, axis=0)
+            max_x, max_y = np.max(all_points, axis=0)
+            
+            center_x, center_y = (min_x + max_x) / 2, (min_y + max_y) / 2
+            target_center_x, target_center_y = width / 2, height / 2
+            
+            # Calculate offset to center the pattern
+            offset_x = int(target_center_x - center_x)
+            offset_y = int(target_center_y - center_y)
+            
+            # Apply offset to all contours
+            centered_contours = []
+            for contour in contours:
+                centered = contour.copy()
+                centered[:, :, 0] += offset_x
+                centered[:, :, 1] += offset_y
+                centered_contours.append(centered)
+            
+            contours_to_draw = centered_contours
+        else:
+            contours_to_draw = contours
+        
+        # Draw all contours
+        for contour in contours_to_draw:
+            cv2.drawContours(img, [contour.astype(np.int32)], 0, 255, thickness)
+        
+        return img
+    
+    def _transform_image(self, img, scale=1.0, angle=0.0, tx=0, ty=0):
+        """Apply scale, rotation and translation to an image."""
+        height, width = img.shape[:2]
+        center = (width // 2, height // 2)
+        
+        # Get rotation matrix
+        rot_mat = cv2.getRotationMatrix2D(center, angle, scale)
+        
+        # Add translation
+        rot_mat[0, 2] += tx
+        rot_mat[1, 2] += ty
+        
+        # Apply transformation
+        transformed = cv2.warpAffine(img, rot_mat, (width, height), flags=cv2.INTER_LINEAR)
+        
+        return transformed
+    
+    def _calculate_image_similarity(self, img1, img2):
+        """Calculate similarity between two binary images using IoU."""
+        # Calculate areas
+        area1 = cv2.countNonZero(img1)
+        area2 = cv2.countNonZero(img2)
+        
+        # Calculate intersection
+        intersection = cv2.bitwise_and(img1, img2)
+        intersection_area = cv2.countNonZero(intersection)
+        
+        # Calculate union
+        union = cv2.bitwise_or(img1, img2)
+        union_area = cv2.countNonZero(union)
+        
+        # Calculate IoU
+        iou = intersection_area / union_area if union_area > 0 else 0
+        
+        return iou, intersection_area, area1, area2
+    
+    def _find_best_transformation(self, drone_img, satellite_img, 
+                                min_scale=0.5, max_scale=2.0, scale_steps=10,
+                                angle_step=10.0, translation_range=50, translation_step=10,
+                                simplify=False):
+        """
+        Find the best transformation parameters to align drone image with satellite image.
+        
+        Args:
+            drone_img: Binary image with drone contours
+            satellite_img: Binary image with satellite contours
+            min_scale: Minimum scale factor to try
+            max_scale: Maximum scale factor to try
+            scale_steps: Number of scale steps to try
+            angle_step: Step size for rotation angles in degrees
+            translation_range: Range for translation in pixels
+            translation_step: Step size for translation
+            simplify: If True, disable scale and rotation transformations (only use translation)
+                     This significantly reduces computational complexity but may miss matches
+                     when images are at different scales or orientations
+            
+        Returns:
+            Tuple of (best scale, best angle, best IoU score, best tx, best ty, total comparisons)
+        """
+        # Create parameter search space based on simplify flag
+        if simplify:
+            # Simplified mode: Only use identity transformation (scale=1.0, angle=0.0)
+            # and only search for translations
+            scale_factors = [1.0]
+            angles = [0.0]
+        else:
+            # Full search mode: Try different scales and angles
+            scale_factors = np.linspace(min_scale, max_scale, scale_steps)
+            angles = np.arange(0, 360, angle_step)
+            
+        # Translation search is always performed
+        tx_values = range(-translation_range, translation_range + 1, translation_step)
+        ty_values = range(-translation_range, translation_range + 1, translation_step)
+        
+        best_iou = 0.0
+        best_scale = 1.0
+        best_angle = 0.0
+        best_tx = 0
+        best_ty = 0
+        total_comparisons = 0
+        
+        for scale in scale_factors:
+            for angle in angles:
+                # Apply initial transformation (scale and rotation)
+                transformed = self._transform_image(drone_img, scale=scale, angle=angle)
+                
+                # Then try different translations
+                for tx in tx_values:
+                    for ty in ty_values:
+                        # Apply translation
+                        final_transformed = self._transform_image(transformed, tx=tx, ty=ty)
+                        
+                        # Calculate similarity
+                        iou, _, _, _ = self._calculate_image_similarity(final_transformed, satellite_img)
+                        total_comparisons += 1
+                        
+                        # Update best parameters if better
+                        if iou > best_iou:
+                            best_iou = iou
+                            best_scale = scale
+                            best_angle = angle
+                            best_tx = tx
+                            best_ty = ty
+        
+        return best_scale, best_angle, best_iou, best_tx, best_ty, total_comparisons 

@@ -1,0 +1,52 @@
+[
+  {
+    "lat": 51.6527061,
+    "lon": -0.5245044,
+    "description": "Rickmansworth park - Original reference point"
+  },
+  {
+    "lat": 51.6529500,
+    "lon": -0.5247100,
+    "description": "Rickmansworth park - 300m northwest"
+  },
+  {
+    "lat": 51.6525200,
+    "lon": -0.5242500,
+    "description": "Rickmansworth park - 250m southeast"
+  },
+  {
+    "lat": 51.6530800,
+    "lon": -0.5241200,
+    "description": "Rickmansworth park - 400m northeast"
+  },
+  {
+    "lat": 51.6523400,
+    "lon": -0.5248900,
+    "description": "Rickmansworth park - 350m southwest"
+  },
+  {
+    "lat": 51.6528200,
+    "lon": -0.5239800,
+    "description": "Rickmansworth park - East side"
+  },
+  {
+    "lat": 51.6526100,
+    "lon": -0.5251300,
+    "description": "Rickmansworth park - West side"
+  },
+  {
+    "lat": 51.6532500,
+    "lon": -0.5245800,
+    "description": "Rickmansworth park - North side"
+  },
+  {
+    "lat": 51.6522000,
+    "lon": -0.5244300,
+    "description": "Rickmansworth park - South side"
+  },
+  {
+    "lat": 51.6527061,
+    "lon": -0.5230000,
+    "description": "Rickmansworth - 1km east of park"
+  }
+] 

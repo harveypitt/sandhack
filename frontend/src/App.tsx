@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes, Link as RouterLink } from 'reac
 import LLMAnalysisPage from './pages/LLMAnalysisPage';
 import HomePage from './pages/HomePage';
 import ContourAnalysisPage from './pages/ContourAnalysisPage';
+import DroneMatcherPage from './pages/DroneMatcherPage';
 import { extendTheme } from '@chakra-ui/react';
 
 // Create a custom theme to ensure no unexpected dark backgrounds
@@ -63,6 +64,9 @@ function App() {
               <Button as={RouterLink} to="/contour-analysis" colorScheme="purple" variant="outline">
                 Contour Analysis
               </Button>
+              <Button as={RouterLink} to="/drone-matcher" colorScheme="green" variant="outline">
+                Drone Matcher
+              </Button>
             </Flex>
           </Box>
           
@@ -70,6 +74,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/llm-analysis" element={<LLMAnalysisPage />} />
             <Route path="/contour-analysis" element={<ContourAnalysisPage />} />
+            <Route path="/drone-matcher" element={<DroneMatcherPage />} />
           </Routes>
         </Box>
       </Router>

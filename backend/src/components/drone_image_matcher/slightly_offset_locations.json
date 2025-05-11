@@ -1,0 +1,27 @@
+[
+  {
+    "lat": 51.6527061,
+    "lon": -0.5245044,
+    "description": "Rickmansworth park - Original Exact"
+  },
+  {
+    "lat": 51.6527061,
+    "lon": -0.52435919,
+    "description": "Rickmansworth park - 10m East"
+  },
+  {
+    "lat": 51.65279619,
+    "lon": -0.5245044,
+    "description": "Rickmansworth park - 10m North"
+  },
+  {
+    "lat": 51.65225565,
+    "lon": -0.52377835,
+    "description": "Rickmansworth park - 50m Southeast"
+  },
+  {
+    "lat": 51.4538022,
+    "lon": -0.9728517,
+    "description": "Reading University area - Distractor"
+  }
+] 

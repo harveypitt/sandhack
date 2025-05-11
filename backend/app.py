@@ -8,16 +8,20 @@ This module provides API endpoints to process images and return location estimat
 import os
 import json
 from pathlib import Path
+import tempfile
 from fastapi import FastAPI, UploadFile, File, HTTPException, APIRouter, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 from typing import Optional, List
+import base64
 
 from src.components.llm_analysis.contextual_analyzer import LLMContextualAnalyzer
 # Import contour components
 from src.components.contour_extractor.contour_extractor import ContourExtractor
 from src.components.contour_matcher.contour_matcher import ContourMatcher
+# Import drone image matcher components
+from src.components.drone_image_matcher.drone_image_matcher import DroneImageMatcher
 
 # Initialize the app
 app = FastAPI(title="Location Estimation API",
@@ -36,6 +40,7 @@ app.add_middleware(
 llm_router = APIRouter(prefix="/llm-analysis", tags=["LLM_Analysis"])
 contour_extractor_router = APIRouter(prefix="/contour", tags=["Contour_Extractor"])
 contour_matcher_router = APIRouter(prefix="/contour", tags=["Contour_Matcher"])
+drone_matcher_router = APIRouter(prefix="/drone-matcher", tags=["Drone_Image_Matcher"])
 
 # Initialize components
 analyzer = LLMContextualAnalyzer(global_mode=False)
@@ -234,10 +239,141 @@ async def match_contours(
                 if f.exists():
                     f.unlink()
 
+# Drone Image Matcher Endpoints
+@drone_matcher_router.post("/match-location")
+async def match_drone_location(
+    drone_image: UploadFile = File(..., description="Drone image to match (max 100MB)"),
+    coordinates_file: UploadFile = File(..., description="JSON file with coordinates to test"),
+    simplify: bool = Form(True, description="Whether to use simplified holistic matching"),
+    use_contour: bool = Form(False, description="Whether to use contour-based matching instead of holistic")
+):
+    """
+    Match a drone image with satellite images from coordinates to find its location
+    
+    Args:
+        drone_image: The drone image file to find the location of
+        coordinates_file: JSON file with potential coordinates to check
+        simplify: Whether to use simplified holistic matching (faster)
+        use_contour: Whether to use contour matching instead of holistic matching
+        
+    Returns:
+        JSON response with matching results including best match coordinates and score
+    """
+    # Check if file is an image
+    if not drone_image.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Drone file must be an image")
+    
+    # Check if coordinates file is JSON
+    if not coordinates_file.content_type == "application/json":
+        raise HTTPException(status_code=400, detail="Coordinates file must be JSON")
+    
+    try:
+        # Create temporary files
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_drone:
+            # Save drone image
+            content = await drone_image.read()
+            tmp_drone.write(content)
+            drone_path = tmp_drone.name
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_coords:
+            # Save coordinates file
+            content = await coordinates_file.read()
+            tmp_coords.write(content)
+            coords_path = tmp_coords.name
+            
+            # Parse coordinates to validate
+            try:
+                coordinates = json.loads(content.decode('utf-8'))
+                if not isinstance(coordinates, list):
+                    raise HTTPException(status_code=400, detail="Coordinates must be a JSON array")
+                
+                # Check if coordinates have required fields
+                for coord in coordinates:
+                    if "lat" not in coord or "lon" not in coord:
+                        raise HTTPException(status_code=400, detail="Each coordinate must have 'lat' and 'lon' fields")
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid JSON format in coordinates file")
+        
+        # Create a temp directory for output files
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Create the DroneImageMatcher with our parameters
+            matcher = DroneImageMatcher(
+                output_dir=tmp_dir,
+                use_holistic=not use_contour,
+                simplify=simplify
+            )
+            
+            # Find the best match
+            result = matcher.find_best_match(drone_path, coordinates)
+            
+            # Log detailed info for debugging
+            print(f"Drone image path: {drone_path}")
+            print(f"Best match coordinates: {result['best_match']['coordinates']}")
+            print(f"Best match score: {result['best_match']['score']}")
+            if 'satellite_image' in result['best_match']:
+                print(f"Best match satellite image path: {result['best_match']['satellite_image']}")
+                print(f"Satellite image exists: {os.path.exists(result['best_match']['satellite_image'])}")
+            
+            # Process results to make them serializable
+            processed_result = {
+                'drone_image': drone_image.filename,
+                'best_match': {
+                    'coordinates': result['best_match']['coordinates'],
+                    'score': float(result['best_match']['score']),
+                },
+                'all_matches': []
+            }
+            
+            # Add satellite image if available
+            if 'satellite_image' in result['best_match'] and os.path.exists(result['best_match']['satellite_image']):
+                # Read the image file and encode as base64
+                try:
+                    with open(result['best_match']['satellite_image'], 'rb') as img_file:
+                        img_data = img_file.read()
+                        encoded_img = base64.b64encode(img_data).decode('utf-8')
+                        processed_result['best_match']['satellite_image'] = encoded_img
+                        print(f"Successfully encoded satellite image (length: {len(encoded_img)})")
+                except Exception as e:
+                    print(f"Error encoding satellite image: {str(e)}")
+            else:
+                print(f"Satellite image not available or path doesn't exist")
+            
+            # Process all matches
+            for match in result['all_matches']:
+                match_data = {
+                    'coordinates': match['coordinates'],
+                    'score': float(match['score']),
+                }
+                # Add satellite image if available for this match
+                if 'satellite_image' in match and os.path.exists(match['satellite_image']):
+                    # Only add if we haven't already added it for the best match (to save bandwidth)
+                    if not (match is result['best_match'] and 'satellite_image' in processed_result['best_match']):
+                        with open(match['satellite_image'], 'rb') as img_file:
+                            img_data = img_file.read()
+                            match_data['satellite_image'] = base64.b64encode(img_data).decode('utf-8')
+                
+                processed_result['all_matches'].append(match_data)
+            
+            return JSONResponse(content=processed_result)
+    
+    except Exception as e:
+        import traceback
+        error_detail = f"Error: {str(e)}\n\nTraceback: {traceback.format_exc()}"
+        print(f"Drone matcher error: {error_detail}")
+        raise HTTPException(status_code=500, detail=error_detail)
+    
+    finally:
+        # Clean up temporary files
+        if 'drone_path' in locals() and os.path.exists(drone_path):
+            os.unlink(drone_path)
+        if 'coords_path' in locals() and os.path.exists(coords_path):
+            os.unlink(coords_path)
+
 # Include the routers
 app.include_router(llm_router)
 app.include_router(contour_extractor_router)
 app.include_router(contour_matcher_router)
+app.include_router(drone_matcher_router)
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True) 

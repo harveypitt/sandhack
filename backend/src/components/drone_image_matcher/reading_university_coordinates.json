@@ -1,0 +1,52 @@
+[
+  {
+    "lat": 51.4538022,
+    "lon": -0.9728517,
+    "description": "Reading University area - Original reference point"
+  },
+  {
+    "lat": 51.4540500,
+    "lon": -0.9731200,
+    "description": "Reading University - Main campus northwest"
+  },
+  {
+    "lat": 51.4535800,
+    "lon": -0.9725400,
+    "description": "Reading University - Main campus southeast"
+  },
+  {
+    "lat": 51.4541700,
+    "lon": -0.9724300,
+    "description": "Reading University - Main campus northeast"
+  },
+  {
+    "lat": 51.4534500,
+    "lon": -0.9732100,
+    "description": "Reading University - Main campus southwest"
+  },
+  {
+    "lat": 51.4538900,
+    "lon": -0.9720800,
+    "description": "Reading University - East side of campus"
+  },
+  {
+    "lat": 51.4537200,
+    "lon": -0.9736500,
+    "description": "Reading University - West side of campus"
+  },
+  {
+    "lat": 51.4544300,
+    "lon": -0.9729200,
+    "description": "Reading University - North side of campus"
+  },
+  {
+    "lat": 51.4532100,
+    "lon": -0.9727800,
+    "description": "Reading University - South side of campus"
+  },
+  {
+    "lat": 51.4538022,
+    "lon": -0.9708517,
+    "description": "Reading University - 1km east of main campus"
+  }
+] 

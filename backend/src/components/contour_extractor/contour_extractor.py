@@ -71,7 +71,7 @@ class ContourExtractor:
             os.makedirs(self.temp_dir, exist_ok=True)
             logger.info(f"Created fallback temp directory at {self.temp_dir}")
     
-    def extract_contours(self, image_path, threshold=50):
+    def extract_contours(self, image_input, threshold=50):
         """
         Extract contours from an image.
         
@@ -83,13 +83,13 @@ class ContourExtractor:
         5. Generate visualization image with contours overlaid
         
         Args:
-            image_path (str): Path to the input image
+            image_input (str or np.ndarray): Path to the input image or the image data as a NumPy array.
             threshold (int): Contour detection threshold (0-100). 
                              Lower values extract fewer but stronger contours.
             
         Returns:
             dict: A dictionary containing:
-                - original_image: Base64-encoded original image
+                - original_image: Base64-encoded original image (if path was provided), else None
                 - contour_visualization: Base64-encoded visualization
                 - contours: List of extracted contours (points)
                 - contour_count: Number of contours found
@@ -100,14 +100,28 @@ class ContourExtractor:
             Exception: If image processing fails
         """
         try:
-            logger.info(f"Extracting contours from: {image_path} with threshold: {threshold}")
-            
-            # Read the image
-            img = cv2.imread(image_path)
-            if img is None:
-                logger.error(f"Failed to read image: {image_path}")
+            img = None
+            orig_base64 = None
+            image_path_for_logging = None
+
+            if isinstance(image_input, str):
+                logger.info(f"Extracting contours from image path: {image_input} with threshold: {threshold}")
+                image_path_for_logging = image_input
+                img = cv2.imread(image_input)
+                if img is None:
+                    logger.error(f"Failed to read image: {image_input}")
+                    return None
+                with open(image_input, "rb") as img_file:
+                    orig_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+            elif isinstance(image_input, np.ndarray):
+                logger.info(f"Extracting contours from image data (shape: {image_input.shape}) with threshold: {threshold}")
+                image_path_for_logging = f"image_data_shape_{image_input.shape}"
+                img = image_input
+                # orig_base64 will be None as we don't have the original file path
+            else:
+                logger.error(f"Invalid image_input type: {type(image_input)}. Must be str or np.ndarray.")
                 return None
-            
+
             # Convert to grayscale
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             
@@ -140,8 +154,8 @@ class ContourExtractor:
             cv2.imwrite(str(viz_path), viz_img)
             
             # Encode original and visualization images to base64
-            with open(image_path, "rb") as img_file:
-                orig_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+            # Ensure orig_base64 is only set if image_input was a path and successfully read
+            # The viz_base64 part is fine as viz_path is always created.
             
             with open(viz_path, "rb") as viz_file:
                 viz_base64 = base64.b64encode(viz_file.read()).decode('utf-8')
